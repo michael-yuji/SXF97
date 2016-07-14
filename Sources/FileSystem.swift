@@ -235,7 +235,7 @@ public struct POSIXFileTypes : RawRepresentable, CustomStringConvertible {
 
 public struct Dirent: CustomStringConvertible {
     public var name: String
-    public var ino: UInt64
+    public var ino: ino_t
     public var size: Int
     public var type: POSIXFileTypes
     
