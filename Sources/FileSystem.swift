@@ -31,10 +31,6 @@ import Foundation
 import LinuxFoundation
 import spartanX
 
-#if os(Linux)
-public typealias FileManager = NSFileManager
-#endif
-
 public enum Resource {
     case available(Data?)
     case restricted(Data?)
@@ -242,7 +238,11 @@ public struct Dirent: CustomStringConvertible {
     
     init(d: dirent) {
         var dirent = d
+        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
+        #else
+        self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)
+        #endif
         self.size = Int(dirent.d_reclen)
         self.type = POSIXFileTypes(rawValue: Int32(dirent.d_type))
         self.ino = dirent.d_ino
