@@ -29,6 +29,12 @@
 
 import Foundation
 
+#if os(Linux)
+    public typealias DateFormatter = NSDateFormatter
+    public typealias Date = NSDate
+    public typealias TimeZone = NSTimeZone
+#endif
+
 public extension DateFormatter {
     public static var HTTPDateFormatter : DateFormatter {
         let dateFormatter = DateFormatter()

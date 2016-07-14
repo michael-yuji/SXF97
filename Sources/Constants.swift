@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import spartanX
 
 public extension Data {
     public static var crlf: Data {

@@ -30,6 +30,10 @@
 import Foundation
 import spartanX
 
+#if os(Linux)
+public typealias FileManager = NSFileManager
+#endif
+
 public enum Resource {
     case available(Data?)
     case restricted(Data?)
@@ -221,6 +225,11 @@ public struct POSIXFileTypes : RawRepresentable, CustomStringConvertible {
     
     public init(rawValue: Int32) {
         self.rawValue = rawValue
+    }
+    
+    /* for Linux */
+    public init(rawValue: Int) {
+        self.rawValue = Int32(rawValue)
     }
 }
 
