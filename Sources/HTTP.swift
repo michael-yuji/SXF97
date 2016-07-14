@@ -86,7 +86,11 @@ extension HTTP {
             
         } while line != ""
         
+        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
+        #else
+        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count))
+        #endif
     }
 }
 
