@@ -28,7 +28,7 @@
 //
 
 import Foundation
-import spartanX
+import LinuxFoundation
 
 public extension Data {
     public static var crlf: Data {

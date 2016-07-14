@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import LinuxFoundation
 import spartanX
 
 #if os(Linux)

@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import LinuxFoundation
 import spartanX
 
 public struct SXRestServer : SXRuntimeDataDelegate {

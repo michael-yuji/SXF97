@@ -28,7 +28,7 @@
 //
 
 import Foundation
-
+import LinuxFoundation
 #if os(Linux)
     public typealias DateFormatter = NSDateFormatter
     public typealias Date = NSDate

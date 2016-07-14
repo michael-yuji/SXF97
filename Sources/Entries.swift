@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import LinuxFoundation
 
 public struct HTTPResponseEntry {
     public static let AccessControlAllowOrigin = "Access-Control-Allow-Origin"
