@@ -57,12 +57,20 @@ public struct HTTPRequest: HTTP {
     public init(data: Data) throws {
         
         var dataReader = DataReader(fromData: data)
-        
+        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         guard let statuslineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
             let statusline = String(data: statuslineb, encoding: .utf8)
             else {
                 throw HTTPErrors.headerContainsNonStringLiterial
         }
+        #else
+        var crlf: [UInt8] = [0x0d, 0x0a]
+        guard let statuslineb = dataReader.nextSegmentOfData(separatedBy: &crlf),
+            let statusline = String(data: statuslineb, encoding: .utf8)
+            else {
+                throw HTTPErrors.headerContainsNonStringLiterial
+        }
+        #endif
         
         let statuslineComponents = statusline.components(separatedBy: " ")
         if statuslineComponents.count != 3 { throw HTTPErrors.malformedStatusline }
