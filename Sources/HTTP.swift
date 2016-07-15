@@ -70,7 +70,8 @@ extension HTTP {
                     throw HTTPErrors.headerContainsNonStringLiterial
             }
             #else
-                guard let lineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf.bytes),
+                var bytes = Data.crlf.bytes
+                guard let lineb = dataReader.nextSegmentOfData(separatedBy: bytes),
                     line_ = String(data: lineb, encoding: .utf8) else {
                         throw HTTPErrors.headerContainsNonStringLiterial
                 }
@@ -100,7 +101,7 @@ extension HTTP {
         #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
         #else
-        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count)).mutableCopy() as? Data
+        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count)).mutableCopy() as! Data
         #endif
     }
 }
