@@ -43,6 +43,10 @@ public enum HTTPMethod : String {
     case patch = "PATCH"
 }
 
+#if os (Linux)
+typealias FileManager = NSFileManager
+#endif
+
 extension HTTP {
     
     func expandHeader(key: String, value: [String]) -> String {
@@ -60,10 +64,17 @@ extension HTTP {
         var line = ""
         
         repeat {
+            #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
             guard let lineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
                 line_ = String(data: lineb, encoding: .utf8) else {
                     throw HTTPErrors.headerContainsNonStringLiterial
             }
+            #else
+                guard let lineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf.bytes),
+                    line_ = String(data: lineb, encoding: .utf8) else {
+                        throw HTTPErrors.headerContainsNonStringLiterial
+                }
+            #endif
             
             line = line_
             
@@ -89,7 +100,7 @@ extension HTTP {
         #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
         #else
-        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count))
+        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count)).mutableCopy() as? Data
         #endif
     }
 }
