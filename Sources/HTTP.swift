@@ -70,7 +70,7 @@ extension HTTP {
                     throw HTTPErrors.headerContainsNonStringLiterial
             }
             #else
-                var bytes = Data.crlf.bytes
+                var bytes = [0x0d, 0x0a]
                 guard let lineb = dataReader.nextSegmentOfData(separatedBy: bytes),
                     line_ = String(data: lineb, encoding: .utf8) else {
                         throw HTTPErrors.headerContainsNonStringLiterial
