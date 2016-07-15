@@ -43,9 +43,9 @@ public enum HTTPMethod : String {
     case patch = "PATCH"
 }
 
-#if os (Linux)
-typealias FileManager = NSFileManager
-#endif
+//#if os (Linux)
+//typealias FileManager = NSFileManager
+//#endif
 
 extension HTTP {
     
@@ -70,7 +70,7 @@ extension HTTP {
                     throw HTTPErrors.headerContainsNonStringLiterial
             }
             #else
-                var bytes = [0x0d, 0x0a]
+                var bytes: [UInt8] = [0x0d, 0x0a]
                 guard let lineb = dataReader.nextSegmentOfData(separatedBy: &bytes),
                     line_ = String(data: lineb, encoding: .utf8) else {
                         throw HTTPErrors.headerContainsNonStringLiterial
