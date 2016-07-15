@@ -71,7 +71,7 @@ extension HTTP {
             }
             #else
                 var bytes = [0x0d, 0x0a]
-                guard let lineb = dataReader.nextSegmentOfData(separatedBy: bytes),
+                guard let lineb = dataReader.nextSegmentOfData(separatedBy: &bytes),
                     line_ = String(data: lineb, encoding: .utf8) else {
                         throw HTTPErrors.headerContainsNonStringLiterial
                 }
