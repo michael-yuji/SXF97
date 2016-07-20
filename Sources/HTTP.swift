@@ -54,6 +54,8 @@ extension HTTP {
     }
     public var raw: Data {
         var data = headerFields.reduce("\(statusline)\r\n", combine: {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
+        
+//        headerFields.sort({$0 > $1})
         data!.append(Data.crlf)
         data!.append(self.content)
         return data!

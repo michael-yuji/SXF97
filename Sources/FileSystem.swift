@@ -248,7 +248,7 @@ public struct Dirent: CustomStringConvertible {
         #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
         #else
-        self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)
+        self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
         #endif
         self.size = Int(dirent.d_reclen)
         self.type = POSIXFileTypes(rawValue: Int32(dirent.d_type))
