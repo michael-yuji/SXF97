@@ -48,11 +48,11 @@ public struct SXResoucesConfig {
         if isDirectory && directoryRepresentation != nil {
             return directoryRepresentation!(path: path)
         }
-//        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         return FileManager.default.contents(atPath: path)
-//        #else
-//        return FileManager.default.contents(atPath: path)?.mutableCopy() as? NSMutableData
-//        #endif
+        #else
+        return FileManager.default().contents(atPath: path)
+        #endif
     }
     
     public var virtualPathPolicy: ((path: String) -> [String: (path: String, fullpath: Bool)])?
@@ -114,7 +114,11 @@ public struct SXResoucesConfig {
             fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path: path)) }
         print(fullpath)
         var isDir = ObjCBool(false)
+        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
+        #else
+        let exists = FileManager.default().fileExists(atPath: fullpath, isDirectory: &isDir)
+        #endif
         return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(path: fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resourceNotFoundRepresentation?(path: fullpath))
     }
     
@@ -240,11 +244,7 @@ public struct Dirent: CustomStringConvertible {
     
     init(d: dirent) {
         var dirent = d
-//        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
-//        #else
-//        self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
-//        #endif
         self.size = Int(dirent.d_reclen)
         self.type = POSIXFileTypes(rawValue: Int32(dirent.d_type))
         self.ino = dirent.d_ino
