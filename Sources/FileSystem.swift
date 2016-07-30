@@ -48,11 +48,11 @@ public struct SXResoucesConfig {
         if isDirectory && directoryRepresentation != nil {
             return directoryRepresentation!(path: path)
         }
-        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+//        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         return FileManager.default.contents(atPath: path)
-        #else
-        return FileManager.default.contents(atPath: path)?.mutableCopy() as? NSMutableData
-        #endif
+//        #else
+//        return FileManager.default.contents(atPath: path)?.mutableCopy() as? NSMutableData
+//        #endif
     }
     
     public var virtualPathPolicy: ((path: String) -> [String: (path: String, fullpath: Bool)])?

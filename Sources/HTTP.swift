@@ -47,6 +47,7 @@ extension HTTP {
     func expandHeader(key: String, value: [String]) -> String {
         return value.reduce("") { "\($0)\(key): \($1)\r\n" }
     }
+    
     public var raw: Data {
         var data = headerFields.reduce("\(statusline)\r\n", combine: {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
         data!.append(Data.crlf)
