@@ -28,7 +28,6 @@
 //
 
 import Foundation
-import LinuxFoundation
 
 public enum HTTPErrors : ErrorProtocol {
     case headerContainsNonStringLiterial

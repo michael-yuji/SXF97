@@ -28,7 +28,6 @@
 //
 
 import Foundation
-import LinuxFoundation
 
 public struct HTTPVersion {
     public var mainVersion: Int

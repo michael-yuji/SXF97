@@ -28,7 +28,6 @@
 //
 
 import Foundation
-import LinuxFoundation
 
 public extension Data {
 //    #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)

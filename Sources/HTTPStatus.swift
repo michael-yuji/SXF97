@@ -28,7 +28,6 @@
 //
 
 import Foundation
-import LinuxFoundation
 
 public protocol HTTPStatusProtocol {
     var raw: Int {get}

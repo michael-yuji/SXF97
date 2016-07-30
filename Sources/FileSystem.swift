@@ -28,7 +28,6 @@
 //
 
 import Foundation
-import LinuxFoundation
 import spartanX
 
 public enum Resource {
@@ -60,7 +59,7 @@ public struct SXResoucesConfig {
     public var restrictionPolicy: ((path: String, isDirectory: Bool) -> Bool)?
     
     public var restrictedResourcesRepresentation: ((path: String) -> Data)?
-    public var resouceNotFoundRepresentation: ((path: String) -> Data)?
+    public var resourceNotFoundRepresentation: ((path: String) -> Data)?
     public var directoryRepresentation: ((path: String) -> Data?)?
     
     public mutating func setVirtualPathPolicy(_ policy: ((path: String) -> [String: (path: String, fullpath: Bool)])?) {
@@ -71,8 +70,8 @@ public struct SXResoucesConfig {
         self.restrictionPolicy = policy
     }
     
-    public mutating func setResouceNotFoundRepresentation(_ policy: ((path: String) -> Data)?) {
-        self.resouceNotFoundRepresentation = policy
+    public mutating func setResourceNotFoundRepresentation(_ policy: ((path: String) -> Data)?) {
+        self.resourceNotFoundRepresentation = policy
     }
     
     public mutating func setDirectoryRepresentation(_ policy: ((path: String) -> Data)?) {
@@ -111,16 +110,12 @@ public struct SXResoucesConfig {
     
     public func resource(atPath path: String) -> Resource {
         
-        guard let fullpath = expandToFullPath(path: root + path, virtualPathPolicy: virtualPathPolicy) where
-            fullpath != "" else { return .notfound(resouceNotFoundRepresentation?(path: path)) }
+        guard let fullpath = expandToFullPath(path: root + path, virtualPathPolicy: virtualPathPolicy) ,
+            fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path: path)) }
         print(fullpath)
         var isDir = ObjCBool(false)
-//        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
-//        #else
-//        let exists = FileManager.default().fileExists(atPath: fullpath, isDirectory: &isDir)
-//        #endif
-        return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(path: fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resouceNotFoundRepresentation?(path: fullpath))
+        return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(path: fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resourceNotFoundRepresentation?(path: fullpath))
     }
     
     public init(trustedDirectory: [String], restrictedPaths: [String], root: String, allowDir: Bool) {
@@ -245,11 +240,11 @@ public struct Dirent: CustomStringConvertible {
     
     init(d: dirent) {
         var dirent = d
-        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+//        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
-        #else
-        self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
-        #endif
+//        #else
+//        self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
+//        #endif
         self.size = Int(dirent.d_reclen)
         self.type = POSIXFileTypes(rawValue: Int32(dirent.d_type))
         self.ino = dirent.d_ino

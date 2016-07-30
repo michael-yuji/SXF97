@@ -28,7 +28,6 @@
 //
 
 import Foundation
-import LinuxFoundation
 import spartanX
 
 public enum HTTPMethod : String {
@@ -43,10 +42,6 @@ public enum HTTPMethod : String {
     case patch = "PATCH"
 }
 
-//#if os (Linux)
-//typealias FileManager = NSFileManager
-//#endif
-
 extension HTTP {
     
     func expandHeader(key: String, value: [String]) -> String {
@@ -54,8 +49,6 @@ extension HTTP {
     }
     public var raw: Data {
         var data = headerFields.reduce("\(statusline)\r\n", combine: {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
-        
-//        headerFields.sort({$0 > $1})
         data!.append(Data.crlf)
         data!.append(self.content)
         return data!
@@ -66,18 +59,18 @@ extension HTTP {
         var line = ""
         
         repeat {
-            #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+//            #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
             guard let lineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
-                line_ = String(data: lineb, encoding: .utf8) else {
+                let line_ = String(data: lineb, encoding: .utf8) else {
                     throw HTTPErrors.headerContainsNonStringLiterial
             }
-            #else
-                var bytes: [UInt8] = [0x0d, 0x0a]
-                guard let lineb = dataReader.nextSegmentOfData(separatedBy: &bytes),
-                    line_ = String(data: lineb, encoding: .utf8) else {
-                        throw HTTPErrors.headerContainsNonStringLiterial
-                }
-            #endif
+//            #else
+//                var bytes: [UInt8] = [0x0d, 0x0a]
+//                guard let lineb = dataReader.nextSegmentOfData(separatedBy: &bytes),
+//                let line_ = String(data: lineb, encoding: .utf8) else {
+//                        throw HTTPErrors.headerContainsNonStringLiterial
+//                }
+//            #endif
             
             line = line_
             
@@ -100,11 +93,11 @@ extension HTTP {
             
         } while line != ""
         
-        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+//        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
-        #else
-        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count)).mutableCopy() as! Data
-        #endif
+//        #else
+//        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count)).mutableCopy() as! Data
+//        #endif
     }
 }
 

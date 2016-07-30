@@ -28,7 +28,6 @@
 //
 
 import Foundation
-import LinuxFoundation
 import spartanX
 
 public struct HTTPRequest: HTTP {
@@ -92,7 +91,7 @@ public struct HTTPRequest: HTTP {
     }
     
     public var cookies: [String: String] {
-        guard let cookieEntries = self.headerFields[HTTPRequestEntry.Cookie] where cookieEntries.count > 0 else {return [:]}
+        guard let cookieEntries = self.headerFields[HTTPRequestEntry.Cookie] , cookieEntries.count > 0 else {return [:]}
         var ret = [String: String]()
         for cookies in cookieEntries {
             for cookie in cookies.components(separatedBy: "; ") {
