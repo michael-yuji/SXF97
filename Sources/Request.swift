@@ -37,7 +37,9 @@ public struct HTTPRequest: HTTP {
     public var method: HTTPMethod
     public var uri: String
     public var headerFields: [String : [String]] = [:]
-    
+}
+
+public extension HTTPRequest {
     public var statusline: String {
         return "\(method.rawValue) \(uri) \(version.stringVal)"
     }
@@ -57,18 +59,18 @@ public struct HTTPRequest: HTTP {
         
         var dataReader = DataReader(fromData: data)
         #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
-        guard let statuslineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
-            let statusline = String(data: statuslineb, encoding: .utf8)
-            else {
-                throw HTTPErrors.headerContainsNonStringLiterial
-        }
+            guard let statuslineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
+                let statusline = String(data: statuslineb, encoding: .utf8)
+                else {
+                    throw HTTPErrors.headerContainsNonStringLiterial
+            }
         #else
-        var crlf: [UInt8] = [0x0d, 0x0a]
-        guard let statuslineb = dataReader.nextSegmentOfData(separatedBy: &crlf),
-            let statusline = String(data: statuslineb, encoding: .utf8)
-            else {
-                throw HTTPErrors.headerContainsNonStringLiterial
-        }
+            var crlf: [UInt8] = [0x0d, 0x0a]
+            guard let statuslineb = dataReader.nextSegmentOfData(separatedBy: &crlf),
+                let statusline = String(data: statuslineb, encoding: .utf8)
+                else {
+                    throw HTTPErrors.headerContainsNonStringLiterial
+            }
         #endif
         
         let statuslineComponents = statusline.components(separatedBy: " ")
@@ -76,7 +78,7 @@ public struct HTTPRequest: HTTP {
         
         guard let method = HTTPMethod(rawValue: statuslineComponents[0]),
             let version = HTTPVersion(str: statuslineComponents[2]) else {
-            throw HTTPErrors.malformedStatusline
+                throw HTTPErrors.malformedStatusline
         }
         
         self.uri = statuslineComponents[1]
@@ -102,4 +104,5 @@ public struct HTTPRequest: HTTP {
         }
         return ret
     }
+
 }

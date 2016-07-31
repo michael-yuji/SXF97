@@ -39,6 +39,7 @@ public struct CommonCookieAttributes {
         public let domain = "Domain"
     }
 }
+
 public struct Cookie: CustomStringConvertible {
     public var key: String
     public var val: String
@@ -64,19 +65,20 @@ public struct HTTPResponse: HTTP {
     public var version: HTTPVersion
     public var type = HTTPTypes.response
     public var headerFields: [String: [String]] = [:]
-    
-    public var statusline: String {
-        get {
-            return "\(version.stringVal) \(status.raw) \(status.description)"
-        }
-    }
-
     public var status: HTTPStatus
     
     public var cookies: [Cookie] = [] {
         didSet {
             headerFields[HTTPResponseEntry.SetCookie] = cookies.map {$0.description}
         }
+    }
+    
+}
+
+public extension HTTPResponse {
+    
+    public var statusline: String {
+        return "\(version.stringVal) \(status.raw) \(status.description)"
     }
     
     public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], withPayload payload: Data?) {

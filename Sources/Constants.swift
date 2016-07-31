@@ -30,13 +30,7 @@
 import Foundation
 
 public extension Data {
-//    #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
     public static var crlf: Data {
         return Data(bytes: [0x0d, 0x0a])
     }
-//    #else
-//    public static var crlf: [UInt8] {
-//    return [0x0d, 0x0a]
-//    }
-//    #endif
 }

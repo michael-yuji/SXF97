@@ -42,6 +42,19 @@ public enum HTTPMethod : String {
     case patch = "PATCH"
 }
 
+public enum HTTPTypes {
+    case request
+    case response
+}
+
+public protocol HTTP {
+    var version: HTTPVersion {get}
+    var type: HTTPTypes {get}
+    var content: Data {get set}
+    var statusline: String {get}
+    var headerFields: [String: [String]] {get set}
+}
+
 extension HTTP {
     
     func expandHeader(key: String, value: [String]) -> String {
@@ -60,18 +73,11 @@ extension HTTP {
         var line = ""
         
         repeat {
-//            #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+
             guard let lineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
                 let line_ = String(data: lineb, encoding: .utf8) else {
                     throw HTTPErrors.headerContainsNonStringLiterial
             }
-//            #else
-//                var bytes: [UInt8] = [0x0d, 0x0a]
-//                guard let lineb = dataReader.nextSegmentOfData(separatedBy: &bytes),
-//                let line_ = String(data: lineb, encoding: .utf8) else {
-//                        throw HTTPErrors.headerContainsNonStringLiterial
-//                }
-//            #endif
             
             line = line_
             
@@ -93,24 +99,7 @@ extension HTTP {
             }
             
         } while line != ""
-        
-//        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+
         content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
-//        #else
-//        content = NSMutableData().subdata(with: NSRange(dataReader.currentOffset..<dataReader.origin.count)).mutableCopy() as! Data
-//        #endif
     }
-}
-
-public enum HTTPTypes {
-    case request
-    case response
-}
-
-public protocol HTTP {
-    var version: HTTPVersion {get}
-    var type: HTTPTypes {get}
-    var content: Data {get set}
-    var statusline: String {get}
-    var headerFields: [String: [String]] {get set}
 }
