@@ -122,7 +122,7 @@ public enum HTTPStatusInformational: Int, HTTPStatusProtocol, CustomStringConver
     public var description: String {
         get {
             switch self {
-            case `continue`:
+            case .`continue`:
                 return "Continue"
             case .switchingProtocols:
                 return "Switching Protocol"
@@ -202,7 +202,7 @@ public enum HTTPStatusRedirection: Int, HTTPStatusProtocol, CustomStringConverti
     public var description: String {
         get {
             switch self {
-            case multipleChoices:
+            case .multipleChoices:
                 return "Multiple Choices "
             case .movedPermanently:
                 return "Moved Permanently"

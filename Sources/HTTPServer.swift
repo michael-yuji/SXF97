@@ -38,7 +38,7 @@ public struct SXHTTPServer : SXRuntimeDataDelegate {
     public static let defaultMaxGuestSize = 500
     
     public var didReceiveData: (object: SXQueue, data: Data) -> Bool
-    public var didReceiveError: ((object: SXRuntimeObject, err: ErrorProtocol) -> ())?
+    public var didReceiveError: ((object: SXRuntimeObject, err: Error) -> ())?
     var shouldAcceptConnection: ((String) -> Bool)?
     
     var handler: (HTTPRequest, String) -> HTTPResponse? {

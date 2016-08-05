@@ -62,7 +62,11 @@ extension HTTP {
     }
     
     public var raw: Data {
+        #if os(Linux) || os(FreeBSD)
         var data = headerFields.reduce("\(statusline)\r\n", combine: {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
+        #else
+        var data = headerFields.reduce("\(statusline)\r\n", {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
+        #endif
         data!.append(Data.crlf)
         data!.append(self.content)
         return data!
