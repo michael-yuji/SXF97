@@ -37,6 +37,14 @@ public enum Resource {
     case inavailable(Data?)
 }
 
+#if os(Linux) || os(FreeBSD)
+    extension ObjCBool {
+        var boolValue: Bool {
+            return self
+        }
+    }
+#endif
+
 public struct SXResoucesConfig {
     
     public var trustedDirectory: [String]
