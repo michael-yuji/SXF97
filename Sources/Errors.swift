@@ -29,10 +29,6 @@
 
 import Foundation
 
-#if os(Linux) || os(FreeBSD)
-public typealias Error = ErrorProtocol
-#endif
-
 public enum HTTPErrors : Error {
     case headerContainsNonStringLiterial
     case malformedStatusline
