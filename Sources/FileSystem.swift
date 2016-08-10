@@ -120,7 +120,7 @@ public struct SXResoucesConfig {
         
         guard let fullpath = expandToFullPath(path: root + path, virtualPathPolicy: virtualPathPolicy) ,
             fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path: path)) }
-        print(fullpath)
+        
         var isDir = ObjCBool(false)
         #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
