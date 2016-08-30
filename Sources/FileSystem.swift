@@ -57,11 +57,8 @@ public struct SXResoucesConfig {
         if isDirectory && directoryRepresentation != nil {
             return directoryRepresentation!(path)
         }
-        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+        
         return FileManager.default.contents(atPath: path)
-        #else
-        return FileManager.default().contents(atPath: path)
-        #endif
     }
     
     public var virtualPathPolicy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?
@@ -123,11 +120,9 @@ public struct SXResoucesConfig {
             fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path)) }
         
         var isDir = ObjCBool(false)
-        #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
+       
         let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
-        #else
-        let exists = FileManager.default().fileExists(atPath: fullpath, isDirectory: &isDir)
-        #endif
+       
         return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resourceNotFoundRepresentation?(fullpath))
     }
     
