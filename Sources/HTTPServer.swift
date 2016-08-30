@@ -37,8 +37,8 @@ public struct SXHTTPServer : SXRuntimeDataDelegate {
     public static let defaultBacklogSize = 500
     public static let defaultMaxGuestSize = 500
     
-    public var didReceiveData: (object: SXQueue, data: Data) -> Bool
-    public var didReceiveError: ((object: SXRuntimeObject, err: Error) -> ())?
+    public var didReceiveData: (_ object: SXQueue, _ data: Data) -> Bool
+    public var didReceiveError: ((_ object: SXRuntimeObject, _ err: Error) -> ())?
     var shouldAcceptConnection: ((String) -> Bool)?
     
     var handler: (HTTPRequest, String) -> HTTPResponse? {
@@ -67,14 +67,14 @@ public extension SXHTTPServer {
         self.server.close()
     }
     
-    public init?(port: Int, backlog: Int = SXHTTPServer.defaultBacklogSize, maxGuest: Int = SXHTTPServer.defaultMaxGuestSize, handler: (request: HTTPRequest, fromIP: String) -> HTTPResponse?) {
+    public init?(port: Int, backlog: Int = SXHTTPServer.defaultBacklogSize, maxGuest: Int = SXHTTPServer.defaultMaxGuestSize, handler: @escaping (_ request: HTTPRequest, _ fromIP: String) -> HTTPResponse?) {
         self.handler = handler
         
         self.didReceiveData = { (object: SXQueue, data: Data) -> Bool in
             guard let httprequest = try? HTTPRequest(data: data) else { return false }
             let queue = (object as! SXStreamQueue)
             
-            if let response = handler(request: httprequest, fromIP: queue.socket.address?.ipaddress ?? "") {
+            if let response = handler(httprequest, queue.socket.address?.ipaddress ?? "") {
                 try! queue.socket.send(data: response.raw, flags: 0)
                 return true
             } else {

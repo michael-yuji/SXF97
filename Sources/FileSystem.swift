@@ -29,6 +29,7 @@
 
 import Foundation
 import spartanX
+import CKit
 
 public enum Resource {
     case available(Data?)
@@ -54,7 +55,7 @@ public struct SXResoucesConfig {
     
     public func contents(at path: String, isDirectory: Bool) -> Data? {
         if isDirectory && directoryRepresentation != nil {
-            return directoryRepresentation!(path: path)
+            return directoryRepresentation!(path)
         }
         #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
         return FileManager.default.contents(atPath: path)
@@ -63,30 +64,30 @@ public struct SXResoucesConfig {
         #endif
     }
     
-    public var virtualPathPolicy: ((path: String) -> [String: (path: String, fullpath: Bool)])?
-    public var restrictionPolicy: ((path: String, isDirectory: Bool) -> Bool)?
+    public var virtualPathPolicy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?
+    public var restrictionPolicy: ((_ path: String, _ isDirectory: Bool) -> Bool)?
     
-    public var restrictedResourcesRepresentation: ((path: String) -> Data)?
-    public var resourceNotFoundRepresentation: ((path: String) -> Data)?
-    public var directoryRepresentation: ((path: String) -> Data?)?
+    public var restrictedResourcesRepresentation: ((_ path: String) -> Data)?
+    public var resourceNotFoundRepresentation: ((_ path: String) -> Data)?
+    public var directoryRepresentation: ((_ path: String) -> Data?)?
     
-    public mutating func setVirtualPathPolicy(_ policy: ((path: String) -> [String: (path: String, fullpath: Bool)])?) {
+    public mutating func setVirtualPathPolicy(_ policy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?) {
         self.virtualPathPolicy = policy
     }
     
-    public mutating func setRestrictionPolicy(_ policy: ((path: String, isDirectory: Bool) -> Bool)?) {
+    public mutating func setRestrictionPolicy(_ policy: ((_ path: String, _ isDirectory: Bool) -> Bool)?) {
         self.restrictionPolicy = policy
     }
     
-    public mutating func setResourceNotFoundRepresentation(_ policy: ((path: String) -> Data)?) {
+    public mutating func setResourceNotFoundRepresentation(_ policy: ((_ path: String) -> Data)?) {
         self.resourceNotFoundRepresentation = policy
     }
     
-    public mutating func setDirectoryRepresentation(_ policy: ((path: String) -> Data)?) {
+    public mutating func setDirectoryRepresentation(_ policy: ((_ path: String) -> Data)?) {
         self.directoryRepresentation = policy
     }
     
-    public mutating func setRestrictedResoucesRepresentation(_ policy: ((path: String) -> Data)?) {
+    public mutating func setRestrictedResoucesRepresentation(_ policy: ((_ path: String) -> Data)?) {
         self.restrictedResourcesRepresentation = policy
     }
     
@@ -94,7 +95,7 @@ public struct SXResoucesConfig {
         if isDir && !allowDir { return true }
         
         if let _ = restrictionPolicy {
-            if restrictionPolicy!(path: path, isDirectory: isDir) {
+            if restrictionPolicy!(path, isDir) {
                 return true
             }
         }
@@ -119,7 +120,7 @@ public struct SXResoucesConfig {
     public func resource(atPath path: String) -> Resource {
         
         guard let fullpath = expandToFullPath(path: root + path, virtualPathPolicy: virtualPathPolicy) ,
-            fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path: path)) }
+            fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path)) }
         
         var isDir = ObjCBool(false)
         #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS)
@@ -127,7 +128,7 @@ public struct SXResoucesConfig {
         #else
         let exists = FileManager.default().fileExists(atPath: fullpath, isDirectory: &isDir)
         #endif
-        return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(path: fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resourceNotFoundRepresentation?(path: fullpath))
+        return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resourceNotFoundRepresentation?(fullpath))
     }
     
     public init(trustedDirectory: [String], restrictedPaths: [String], root: String, allowDir: Bool) {
@@ -139,7 +140,7 @@ public struct SXResoucesConfig {
     
 }
 
-public func expandToFullPath(path: String, virtualPathPolicy: ((path: String) -> [String: (path: String, fullpath: Bool)])?) -> String? {
+public func expandToFullPath(path: String, virtualPathPolicy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?) -> String? {
     var root = "/"
     
     search: for component in path.components(separatedBy: "/") {
@@ -147,7 +148,7 @@ public func expandToFullPath(path: String, virtualPathPolicy: ((path: String) ->
         let component = component
         
         if let virtualPathPolicy = virtualPathPolicy {
-            let map = virtualPathPolicy(path: root)
+            let map = virtualPathPolicy(root)
             if map.keys.contains(component) {
                 let (newpath, isFullPath) = map[component]!
                 if isFullPath {
@@ -188,100 +189,4 @@ public func expandToFullPath(path: String, virtualPathPolicy: ((path: String) ->
     }
     
     return root
-}
-
-public struct POSIXFileTypes : RawRepresentable, CustomStringConvertible {
-    public var rawValue: Int32
-    public static let unknown = POSIXFileTypes(rawValue: DT_UNKNOWN)
-    public static let namedPipe = POSIXFileTypes(rawValue: DT_FIFO)
-    public static let characterDevice = POSIXFileTypes(rawValue: DT_CHR)
-    public static let directory = POSIXFileTypes(rawValue: DT_DIR)
-    public static let blockDevice = POSIXFileTypes(rawValue: DT_BLK)
-    public static let regular = POSIXFileTypes(rawValue: DT_REG)
-    public static let symbolicLink = POSIXFileTypes(rawValue: DT_LNK)
-    public static let socket = POSIXFileTypes(rawValue: DT_SOCK)
-    #if os(OSX) || os(FreeBSD)
-    public static let whiteOut = POSIXFileTypes(rawValue: DT_WHT)
-    #endif
-    
-    public var description: String {
-        #if os(OSX) || os(FreeBSD)
-            switch self.rawValue {
-            case POSIXFileTypes.unknown.rawValue: return "unknown"
-            case POSIXFileTypes.namedPipe.rawValue: return "namedPipe"
-            case POSIXFileTypes.characterDevice.rawValue: return "chracterDevice"
-            case POSIXFileTypes.directory.rawValue: return "directory"
-            case POSIXFileTypes.blockDevice.rawValue: return "blockDevice"
-            case POSIXFileTypes.regular.rawValue: return "regular"
-            case POSIXFileTypes.symbolicLink.rawValue: return "softlink"
-            case POSIXFileTypes.socket.rawValue: return "socket"
-            case POSIXFileTypes.whiteOut.rawValue: return "whiteout"
-            default: return "Invalid val"
-            }
-        #else
-            
-            switch self.rawValue {
-            case POSIXFileTypes.unknown.rawValue: return "unknown"
-            case POSIXFileTypes.namedPipe.rawValue: return "namedPipe"
-            case POSIXFileTypes.characterDevice.rawValue: return "chracterDevice"
-            case POSIXFileTypes.directory.rawValue: return "directory"
-            case POSIXFileTypes.blockDevice.rawValue: return "blockDevice"
-            case POSIXFileTypes.regular.rawValue: return "regular"
-            case POSIXFileTypes.symbolicLink.rawValue: return "softlink"
-            case POSIXFileTypes.socket.rawValue: return "socket"
-            default: return "Invalid val"
-            }
-        #endif
-    }
-    
-    public init(rawValue: Int32) {
-        self.rawValue = rawValue
-    }
-    
-    /* for Linux */
-    public init(rawValue: Int) {
-        self.rawValue = Int32(rawValue)
-    }
-}
-
-public struct Dirent: CustomStringConvertible {
-    public var name: String
-    public var ino: ino_t
-    public var size: Int
-    public var type: POSIXFileTypes
-    
-    init(d: dirent) {
-        var dirent = d
-        self.name = String(cString: UnsafeMutablePointer<CChar>(spartanX.pointer(of: &(dirent.d_name))), encoding: .utf8)!
-        self.size = Int(dirent.d_reclen)
-        self.type = POSIXFileTypes(rawValue: Int32(dirent.d_type))
-        self.ino = dirent.d_ino
-    }
-    
-    public var description: String {
-        get {
-            return String.alignedText( strings: name, "\(ino)", "\(size)", "\(type)", spaces: [25, 10, 7, 15])
-        }
-    }
-}
-
-public func findFile_r(atDirPath path: String, file: String) -> Dirent? {
-    guard let dfd = opendir(path.cString(using: .utf8)!) else {return nil}
-    var dir: dirent = dirent()
-    var result: UnsafeMutablePointer<dirent>? = nil
-    
-    
-    repeat {
-        if readdir_r(dfd, &dir, &result) != 0 {break}
-        
-        if result == nil { break }
-        
-        if Dirent(d: result!.pointee).name == file {
-            closedir(dfd)
-            return Dirent(d: result!.pointee)
-        }
-        
-    } while (result != nil)
-    closedir(dfd)
-    return nil
 }
