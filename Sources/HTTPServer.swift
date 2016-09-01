@@ -30,24 +30,23 @@
 import Foundation
 import spartanX
 
-public struct SXHTTPServer : SXRuntimeDataDelegate {
+public struct HTTPService : SXService {
+    public var errHandler: ((SXQueue, Error) -> ())?
+
+    public var willTerminateHandler: ((SXQueue) -> ())?
+    public var didTerminateHandler: ((SXQueue) -> ())?
+    public var dataHandler: (SXQueue, Data) -> Bool
     
-    var server: SXStreamServer!
-    
-    public static let defaultBacklogSize = 500
-    public static let defaultMaxGuestSize = 500
-    
-    public var didReceiveData: (_ object: SXQueue, _ data: Data) -> Bool
-    public var didReceiveError: ((_ object: SXRuntimeObject, _ err: Error) -> ())?
-    var shouldAcceptConnection: ((String) -> Bool)?
-    
-    var handler: (HTTPRequest, String) -> HTTPResponse? {
+    public var handler: (HTTPRequest, String) -> HTTPResponse? {
         willSet {
-            self.didReceiveData = { (object: SXQueue, data: Data) -> Bool in
+            self.dataHandler = { (queue: SXQueue, data: Data) -> Bool in
                 guard let httprequest = try? HTTPRequest(data: data) else { return false }
-                let queue = (object as! SXStreamQueue)
-                if let response = newValue(httprequest, queue.socket.address?.ipaddress ?? "") {
-                    try! queue.socket.send(data: response.raw, flags: 0)
+                var address: String? = ""
+                if let socket = queue.fd_r as? SXClientSocket {
+                    address = socket.address?.ipaddress
+                }
+                if let response = newValue(httprequest, address ?? "") {
+                    try! queue.fd_w.write(data: response.raw)
                     return true
                 } else {
                     return false
@@ -55,36 +54,80 @@ public struct SXHTTPServer : SXRuntimeDataDelegate {
             }
         }
     }
-}
-
-public extension SXHTTPServer {
     
-    public func start() {
-        self.server.start()
-    }
-    
-    public func kill() {
-        self.server.close()
-    }
-    
-    public init?(port: Int, backlog: Int = SXHTTPServer.defaultBacklogSize, maxGuest: Int = SXHTTPServer.defaultMaxGuestSize, handler: @escaping (_ request: HTTPRequest, _ fromIP: String) -> HTTPResponse?) {
+    public init(handler: @escaping (_ request: HTTPRequest, _ ip: String) -> HTTPResponse?) {
         self.handler = handler
-        
-        self.didReceiveData = { (object: SXQueue, data: Data) -> Bool in
+        self.dataHandler = { (queue: SXQueue, data: Data) -> Bool in
             guard let httprequest = try? HTTPRequest(data: data) else { return false }
-            let queue = (object as! SXStreamQueue)
-            
-            if let response = handler(httprequest, queue.socket.address?.ipaddress ?? "") {
-                try! queue.socket.send(data: response.raw, flags: 0)
+            var address: String? = ""
+            if let socket = queue.fd_r as? SXClientSocket {
+                address = socket.address?.ipaddress
+            }
+            if let response = handler(httprequest, address ?? "") {
+                try! queue.fd_w.write(data: response.raw)
                 return true
             } else {
                 return false
             }
         }
-        
-        self.server = try! SXStreamServer(port: in_port_t(port), domain: .inet, maxGuest: maxGuest, backlog: backlog, dataDelegate: self)
-        if self.server == nil {
-            return nil
-        }
     }
 }
+
+//public struct SXHTTPServer : SXRuntimeDataDelegate {
+//    
+//    var server: SXStreamServer!
+//    
+//    public static let defaultBacklogSize = 500
+//    public static let defaultMaxGuestSize = 500
+//    
+//    public var didReceiveData: (_ object: SXQueue, _ data: Data) -> Bool
+//    public var didReceiveError: ((_ object: SXRuntimeObject, _ err: Error) -> ())?
+//    var shouldAcceptConnection: ((String) -> Bool)?
+//    
+//    var handler: (HTTPRequest, String) -> HTTPResponse? {
+//        willSet {
+//            self.didReceiveData = { (object: SXQueue, data: Data) -> Bool in
+//                guard let httprequest = try? HTTPRequest(data: data) else { return false }
+//                let queue = (object as! SXStreamQueue)
+//                if let response = newValue(httprequest, queue.socket.address?.ipaddress ?? "") {
+//                    try! queue.socket.send(data: response.raw, flags: 0)
+//                    return true
+//                } else {
+//                    return false
+//                }
+//            }
+//        }
+//    }
+//}
+//
+//public extension SXHTTPServer {
+//    
+//    public func start() {
+//        self.server.start()
+//    }
+//    
+//    public func kill() {
+//        self.server.close()
+//    }
+//    
+//    public init?(port: Int, backlog: Int = SXHTTPServer.defaultBacklogSize, maxGuest: Int = SXHTTPServer.defaultMaxGuestSize, handler: @escaping (_ request: HTTPRequest, _ fromIP: String) -> HTTPResponse?) {
+//        self.handler = handler
+//        
+//        self.didReceiveData = { (object: SXQueue, data: Data) -> Bool in
+//            guard let httprequest = try? HTTPRequest(data: data) else { return false }
+//            let queue = (object as! SXStreamQueue)
+//            
+//            if let response = handler(httprequest, queue.socket.address?.ipaddress ?? "") {
+//                try! queue.socket.send(data: response.raw, flags: 0)
+//                return true
+//            } else {
+//                return false
+//            }
+//        }
+//        
+//        self.server = try! SXStreamServer(port: in_port_t(port), domain: .inet, maxGuest: maxGuest, backlog: backlog, dataDelegate: self)
+//        if self.server == nil {
+//            return nil
+//        }
+//    }
+//}
