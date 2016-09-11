@@ -36,6 +36,7 @@ public struct HTTPRequest: HTTP {
     public var content: Data = Data()
     public var method: HTTPMethod
     public var uri: String
+    public var queries = [String: String]()
     public var headerFields: [String : [String]] = [:]
 }
 
@@ -82,6 +83,15 @@ public extension HTTPRequest {
         }
         
         self.uri = statuslineComponents[1]
+        
+        if let query = URL(string: uri)?.query {
+            let paires = query.components(separatedBy: "&")
+            for pair in paires {
+                let components = pair.components(separatedBy: "=")
+                queries[components[0]] = components[1]
+            }
+        }
+        
         self.method = method
         self.version = version
         
@@ -104,5 +114,5 @@ public extension HTTPRequest {
         }
         return ret
     }
-
+    
 }
