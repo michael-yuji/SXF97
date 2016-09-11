@@ -81,7 +81,7 @@ public extension HTTPResponse {
         return "\(version.stringVal) \(status.raw) \(status.description)"
     }
     
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], withPayload payload: Data?) {
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], with payload: Data?) {
         self.status = status
         self.headerFields = entries
         self.content = payload ?? Data()
@@ -91,7 +91,7 @@ public extension HTTPResponse {
         }
     }
     
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String: [String]] = [:], withPayload payload: String?) {
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String: [String]] = [:], text payload: String?) {
         self.status = status
         self.headerFields = entries
         self.content = payload == nil ? Data() : payload?.data(using: .utf8) ?? Data()
@@ -101,7 +101,7 @@ public extension HTTPResponse {
         }
     }
     
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String : [String]] = [:], withPayload payload: Data?) {
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String : [String]] = [:], with payload: Data?) {
         self.status = HTTPStatus(raw: status)!
         self.headerFields = entries
         self.content = payload ?? Data()
@@ -111,7 +111,7 @@ public extension HTTPResponse {
         }
     }
     
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String: [String]] = [:], withPayload payload: String?) {
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String: [String]] = [:], text payload: String?) {
         self.status = HTTPStatus(raw: status)!
         self.headerFields = entries
         self.content = payload == nil ? Data() : payload?.data(using: .utf8) ?? Data()
