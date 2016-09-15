@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import FoundationPlus
 import spartanX
 
 public struct HTTPRequest: HTTP {
@@ -35,12 +36,16 @@ public struct HTTPRequest: HTTP {
     public var type: HTTPTypes = .request
     public var content: Data = Data()
     public var method: HTTPMethod
-    public var uri: String
-    public var queries = [String: String]()
+    public var uri: URL
     public var headerFields: [String : [String]] = [:]
 }
 
 public extension HTTPRequest {
+    
+    public var queries: [String: String] {
+        return self.uri.queries
+    }
+    
     public var statusline: String {
         return "\(method.rawValue) \(uri) \(version.stringVal)"
     }
@@ -48,7 +53,7 @@ public extension HTTPRequest {
     public init(version: HTTPVersion, method: HTTPMethod, resource: String, content: Data? = nil, additionalInfo: [String: [String]] = [:]) {
         self.version = version
         self.method = method
-        self.uri = resource
+        self.uri = URL(string: resource)!
         self.headerFields = additionalInfo
         if let content = content {
             self.content = content
@@ -82,15 +87,11 @@ public extension HTTPRequest {
                 throw HTTPErrors.malformedStatusline
         }
         
-        self.uri = statuslineComponents[1]
-        
-        if let query = URL(string: uri)?.query {
-            let paires = query.components(separatedBy: "&")
-            for pair in paires {
-                let components = pair.components(separatedBy: "=")
-                queries[components[0]] = components[1]
-            }
+        guard let uri = URL(string: statuslineComponents[1]) else {
+            throw HTTPErrors.invalidURI
         }
+        
+        self.uri = uri
         
         self.method = method
         self.version = version

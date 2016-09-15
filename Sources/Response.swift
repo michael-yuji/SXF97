@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import FoundationPlus
 import spartanX
 
 public struct CommonCookieAttributes {

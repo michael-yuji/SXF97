@@ -37,10 +37,27 @@ public extension DateFormatter {
         return dateFormatter
     }
     
+    public static var iso8601DateFormatter: DateFormatter {
+        let dateFormatter = DateFormatter()
+        let posix_us = Locale(identifier: "en_US_POSIX")
+        dateFormatter.locale = posix_us
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZZZZZ"
+        return dateFormatter
+    }
+    
     public static func httpDate(_ date: Date) -> String {
         return "\(DateFormatter.HTTPDateFormatter.string(from: date))"
     }
+    
     public static var httpDateNow: String {
         return "\(DateFormatter.HTTPDateFormatter.string(from: Date()))"
+    }
+    
+    public static func iso8601Date(_ date: Date) -> String {
+        return "\(DateFormatter.iso8601DateFormatter.string(from: date))"
+    }
+    
+    public static var iso8601DateNow: String {
+        return "\(DateFormatter.iso8601DateFormatter.string(from: Date()))"
     }
 }

@@ -33,4 +33,6 @@ public enum HTTPErrors : Error {
     case headerContainsNonStringLiterial
     case malformedStatusline
     case malformedEntry
+    case malformedChunkedData
+    case invalidURI
 }
