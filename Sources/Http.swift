@@ -78,8 +78,7 @@ public extension SXConnectionSocket {
             func readChunked(data: Data) throws -> (Bool, Data) {
                 var reader = DataReader(fromData: data)
                 let t = data.subdata(in: data.index(data.length, offsetBy: -5)..<data.index(data.length, offsetBy: 0)) == Data(bytes: [0x30, 0x0d, 0x0a, 0x0d, 0x0a])
-                print(data.subdata(in: data.index(data.length, offsetBy: -5)..<data.index(data.length, offsetBy: 0)).bytesCopied)
-                print(t)
+                
                 guard
                     let n_bytes_string_in_binary = reader.nextSegmentOfData(separatedBy: Data.crlf),
                     let n_bytes_string = String(data: n_bytes_string_in_binary, encoding: .ascii),
@@ -96,7 +95,6 @@ public extension SXConnectionSocket {
             
             if mode == .http || mode == .https {
                 var response = try HTTPResponse(data: data)
-                print(response.headerFields)
                 
                 if response.exist(valueOf: "chunked", inField: HTTPResponseEntry.TransferEncoding)
                     && response.content.length >= 5 {
