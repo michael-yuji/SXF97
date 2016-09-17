@@ -28,6 +28,7 @@
 //
 
 import Foundation
+import zlib
 
 public extension Data {
     public static var crlf: Data {

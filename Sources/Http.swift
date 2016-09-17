@@ -173,7 +173,7 @@ extension HTTP {
         return data!
     }
     
-    mutating func parseHeaderFields(dataReader: inout DataReader) throws {
+    mutating func parseHeaderFields(ignoreContent: Bool, dataReader: inout DataReader) throws {
         
         var line = ""
         
@@ -186,7 +186,7 @@ extension HTTP {
             
             line = line_
             
-            if line == "" {
+            if line.isEmpty {
                 break
             }
             
@@ -203,8 +203,10 @@ extension HTTP {
                 headerFields[key] = [val]
             }
             
-        } while line != ""
+        } while !line.isEmpty
 
-        content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
+        if !ignoreContent {
+            content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
+        }
     }
 }

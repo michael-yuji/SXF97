@@ -109,6 +109,9 @@ public extension HTTPResponse {
         self.version = version
         if content.count > 0 {
             self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
+            if content.isGzipped {
+                self.headerFields[HTTPResponseEntry.TransferEncoding] = ["gzip"]
+            }
         }
     }
     
@@ -148,7 +151,7 @@ public extension HTTPResponse {
         self.version = version
         
         do {
-            try parseHeaderFields(dataReader: &dataReader)
+            try parseHeaderFields(ignoreContent: false, dataReader: &dataReader)
         } catch {
             throw error
         }

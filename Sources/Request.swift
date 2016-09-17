@@ -97,7 +97,7 @@ public extension HTTPRequest {
         self.version = version
         
         do {
-            try parseHeaderFields(dataReader: &dataReader)
+            try parseHeaderFields(ignoreContent: self.method == .head, dataReader: &dataReader)
         } catch {
             throw error
         }
