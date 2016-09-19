@@ -42,11 +42,11 @@ public struct HTTPService : SXService {
             self.dataHandler = { (queue: SXQueue, data: Data) -> Bool in
                 guard let httprequest = try? HTTPRequest(data: data) else { return false }
                 var address: String? = ""
-                if let socket = queue.fd_r as? SXClientSocket {
+                if let socket = queue.readAgent as? SXClientSocket {
                     address = socket.address?.ipaddress
                 }
                 if let response = newValue(httprequest, address ?? "") {
-                    try! queue.fd_w.write(data: response.raw)
+                    try! queue.writeAgent.write(data: response.raw)
                     return true
                 } else {
                     return false
@@ -60,11 +60,11 @@ public struct HTTPService : SXService {
         self.dataHandler = { (queue: SXQueue, data: Data) -> Bool in
             guard let httprequest = try? HTTPRequest(data: data) else { return false }
             var address: String? = ""
-            if let socket = queue.fd_r as? SXClientSocket {
+            if let socket = queue.readAgent as? SXClientSocket {
                 address = socket.address?.ipaddress
             }
             if let response = handler(httprequest, address ?? "") {
-                try! queue.fd_w.write(data: response.raw)
+                try! queue.writeAgent.write(data: response.raw)
                 return true
             } else {
                 return false
