@@ -46,12 +46,34 @@ public enum Resource {
     }
 #endif
 
-public struct SXResoucesConfig {
+protocol SXVirtualFileSystemContainer {
     
+}
+
+public struct SXVirtualFileSystem {
+    
+    public var root: String
     public var trustedDirectory: [String]
     public var restrictedPaths: [String]
-    public var root: String
-    public var allowDir: Bool
+    public var directoryAccessable: Bool
+    
+    public var virtualPathPolicy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?
+    public var restrictionPolicy: ((_ path: String, _ isDirectory: Bool) -> Bool)?
+    
+    public var restrictedResourcesRepresentation: ((_ path: String) -> Data)?
+    public var resourceNotFoundRepresentation: ((_ path: String) -> Data)?
+    public var directoryRepresentation: ((_ path: String) -> Data?)?
+    
+    public init(trustedDirectory: [String], restrictedPaths: [String], root: String, allowDir: Bool) {
+        self.trustedDirectory = trustedDirectory
+        self.restrictedPaths = restrictedPaths
+        self.root = root
+        self.directoryAccessable = allowDir
+    }
+    
+}
+
+public extension SXVirtualFileSystem {
     
     public func contents(at path: String, isDirectory: Bool) -> Data? {
         if isDirectory && directoryRepresentation != nil {
@@ -61,35 +83,8 @@ public struct SXResoucesConfig {
         return FileManager.default.contents(atPath: path)
     }
     
-    public var virtualPathPolicy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?
-    public var restrictionPolicy: ((_ path: String, _ isDirectory: Bool) -> Bool)?
-    
-    public var restrictedResourcesRepresentation: ((_ path: String) -> Data)?
-    public var resourceNotFoundRepresentation: ((_ path: String) -> Data)?
-    public var directoryRepresentation: ((_ path: String) -> Data?)?
-    
-    public mutating func setVirtualPathPolicy(_ policy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?) {
-        self.virtualPathPolicy = policy
-    }
-    
-    public mutating func setRestrictionPolicy(_ policy: ((_ path: String, _ isDirectory: Bool) -> Bool)?) {
-        self.restrictionPolicy = policy
-    }
-    
-    public mutating func setResourceNotFoundRepresentation(_ policy: ((_ path: String) -> Data)?) {
-        self.resourceNotFoundRepresentation = policy
-    }
-    
-    public mutating func setDirectoryRepresentation(_ policy: ((_ path: String) -> Data)?) {
-        self.directoryRepresentation = policy
-    }
-    
-    public mutating func setRestrictedResoucesRepresentation(_ policy: ((_ path: String) -> Data)?) {
-        self.restrictedResourcesRepresentation = policy
-    }
-    
     public func contentIsRestricted(at path: String, isDir: Bool) -> Bool {
-        if isDir && !allowDir { return true }
+        if isDir && !directoryAccessable { return true }
         
         if let _ = restrictionPolicy {
             if restrictionPolicy!(path, isDir) {
@@ -120,19 +115,50 @@ public struct SXResoucesConfig {
             fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path)) }
         
         var isDir = ObjCBool(false)
-       
+        
         let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
-       
+        
         return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resourceNotFoundRepresentation?(fullpath))
     }
-    
-    public init(trustedDirectory: [String], restrictedPaths: [String], root: String, allowDir: Bool) {
-        self.trustedDirectory = trustedDirectory
-        self.restrictedPaths = restrictedPaths
-        self.root = root
-        self.allowDir = allowDir
+}
+
+public typealias SXResoucesConfig = SXVirtualFileSystem
+
+public extension SXVirtualFileSystem {
+    public mutating func setVirtualPathPolicy(_ policy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?) {
+        self.virtualPathPolicy = policy
     }
     
+    public mutating func setRestrictionPolicy(_ policy: ((_ path: String, _ isDirectory: Bool) -> Bool)?) {
+        self.restrictionPolicy = policy
+    }
+    
+    public mutating func setResourceNotFoundRepresentation(_ policy: ((_ path: String) -> Data)?) {
+        self.resourceNotFoundRepresentation = policy
+    }
+    
+    public mutating func setDirectoryRepresentation(_ policy: ((_ path: String) -> Data)?) {
+        self.directoryRepresentation = policy
+    }
+    
+    public mutating func setRestrictedResoucesRepresentation(_ policy: ((_ path: String) -> Data)?) {
+        self.restrictedResourcesRepresentation = policy
+    }
+    
+}
+
+public func expandToFullPath(path: String) -> String? {
+    var pointer = [CChar](repeating: 0, count: 2 * Int(spartanX.UNIX_PATH_MAX) + 1 /* protection */)
+    
+    if pointer.last! != 0 { //will overflow
+        return nil
+    }
+    
+    if realpath(path, &pointer) == &pointer {
+        return String(cString: pointer)
+    }
+    
+    return nil
 }
 
 public func expandToFullPath(path: String, virtualPathPolicy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?) -> String? {
