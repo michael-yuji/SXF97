@@ -125,8 +125,7 @@ public enum GzipError: Error {
             }
         }()
     }
-    
-    
+
     public var localizedDescription: String {
         
         let description: String = {
@@ -146,7 +145,11 @@ public enum GzipError: Error {
             }
         }()
         
+        #if os(Linux)
+        return description
+        #else
         return NSLocalizedString(description, comment: "error message")
+        #endif
     }
     
 }
