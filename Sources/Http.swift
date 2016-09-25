@@ -66,7 +66,7 @@ public extension SXConnectionSocket {
             case .http, .tcp:
                 connectionSocket = try SXConnectionSocket(hostname: host, service: service)
             case .https, .tcpTls:
-                connectionSocket = try SXConnectionSocket(tls: true, hostname: host, service: service, type: .stream, protocol: 0)
+                connectionSocket = try SXConnectionSocket(hostname: host, service: service, type: .stream, protocol: 0)
             }
             
             if let request = request {
