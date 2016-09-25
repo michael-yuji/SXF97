@@ -82,46 +82,66 @@ public extension HTTPResponse {
         return "\(version.stringVal) \(status.raw) \(status.description)"
     }
     
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], with payload: Data?) {
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], with payload: Data?, gzip: Bool = false) {
         self.status = status
         self.headerFields = entries
         self.content = payload ?? Data()
         self.version = version
         if content.count > 0 {
             self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
-        }
-    }
-    
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String: [String]] = [:], text payload: String?) {
-        self.status = status
-        self.headerFields = entries
-        self.content = payload == nil ? Data() : payload?.data(using: .utf8) ?? Data()
-        self.version = version
-        if content.count > 0 {
-            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
-        }
-    }
-    
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String : [String]] = [:], with payload: Data?) {
-        self.status = HTTPStatus(raw: status)!
-        self.headerFields = entries
-        self.content = payload ?? Data()
-        self.version = version
-        if content.count > 0 {
-            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
-            if content.isGzipped {
-                self.headerFields[HTTPResponseEntry.TransferEncoding] = ["gzip"]
+            if gzip {
+                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
             }
         }
     }
     
-    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String: [String]] = [:], text payload: String?) {
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String: [String]] = [:], text payload: String?, gzip: Bool = false) {
+        self.status = status
+        self.headerFields = entries
+        self.version = version
+        if gzip && payload != nil {
+            self.content = (try? payload!.data(using: .utf8)!.gzipped()) ?? Data()
+        } else {
+            self.content = payload?.data(using: .utf8) ?? Data()
+        }
+        if content.count > 0 {
+            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
+            if gzip {
+                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+            }
+        }
+        
+        self.content = payload == nil ? Data() : payload?.data(using: .utf8) ?? Data()
+        self.version = version
+    }
+    
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String : [String]] = [:], with payload: Data?, gzip: Bool = false) {
         self.status = HTTPStatus(raw: status)!
         self.headerFields = entries
-        self.content = payload == nil ? Data() : payload?.data(using: .utf8) ?? Data()
+        self.content = payload ?? Data()
         self.version = version
         if content.count > 0 {
             self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
+            if gzip {
+                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+            }
+        }
+    }
+    
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String: [String]] = [:], text payload: String?, gzip: Bool = false) {
+        self.status = HTTPStatus(raw: status)!
+        self.headerFields = entries
+        if gzip && payload != nil {
+            self.content = (try? payload!.data(using: .utf8)!.gzipped()) ?? Data()
+        } else {
+            self.content = payload?.data(using: .utf8) ?? Data()
+        }
+        self.version = version
+        if content.count > 0 {
+            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
+            if gzip {
+                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+            }
         }
     }
     
@@ -145,7 +165,7 @@ public extension HTTPResponse {
             let version = HTTPVersion(str: statuslineComponents[0])
             else {
                 throw HTTPErrors.malformedEntry
-        }
+            }
         
         self.status = status
         self.version = version

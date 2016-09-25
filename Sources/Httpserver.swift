@@ -30,9 +30,9 @@
 import Foundation
 import spartanX
 
-public struct HTTPService : SXService {
+public struct HTTPService : SXStreamSocketService {
     public var errHandler: ((SXQueue, Error) -> ())?
-
+    public var acceptedHandler: ((inout SXClientSocket) -> ())?
     public var willTerminateHandler: ((SXQueue) -> ())?
     public var didTerminateHandler: ((SXQueue) -> ())?
     public var dataHandler: (SXQueue, Data) -> Bool
