@@ -152,6 +152,14 @@ extension HTTP {
         return nil
     }
     
+    public mutating func appendHeader(field: String, val: String) {
+        if let _ = self.headerFields[field] {
+            self.headerFields[field]?.append(val)
+        } else {
+            self.headerFields[field] = [val]
+        }
+    }
+    
     public func exist(valueOf val: String, inField field: String) -> Bool {
         guard let vals = valueOf(entry: field) else {
             return false

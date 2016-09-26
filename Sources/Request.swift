@@ -47,7 +47,7 @@ public extension HTTPRequest {
     }
     
     public var statusline: String {
-        return "\(method.rawValue) \(uri) \(version.stringVal)"
+        return "\(method.rawValue) \(uri.path) \(version.stringVal)"
     }
     
     public init(version: HTTPVersion, method: HTTPMethod, resource: String, content: Data? = nil, additionalInfo: [String: [String]] = [:]) {
