@@ -187,6 +187,20 @@ public extension HTTPResponse {
         }
     }
     
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String : [String]] = [:], `static` file: String) {
+        self.status = HTTPStatus(raw: status)!
+        self.headerFields = entries
+        self.version = version
+        self.content = SXFileCache.`default`.request(for: file)
+    }
+    
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], `static` file: String) {
+        self.status = status
+        self.headerFields = entries
+        self.version = version
+        self.content = SXFileCache.`default`.request(for: file)
+    }
+    
     public init(data: Data) throws {
         
         var dataReader = DataReader(fromData: data)

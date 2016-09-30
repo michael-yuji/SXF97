@@ -31,12 +31,12 @@ import Foundation
 import spartanX
 import CKit
 
-public enum Resource {
-    case available(Data?)
-    case restricted(Data?)
-    case notfound(Data?)
-    case inavailable(Data?)
-}
+//public enum Resource {
+//    case available(Data?)
+//    case restricted(Data?)
+//    case notfound(Data?)
+//    case inavailable(Data?)
+//}
 
 #if os(Linux) || os(FreeBSD)
     extension ObjCBool {
@@ -55,6 +55,7 @@ public struct SXVirtualFileSystem {
     public var root: String
     public var trustedDirectory: [String]
     public var restrictedPaths: [String]
+    fileprivate var fullpathMap = [String: String]()
     public var directoryAccessable: Bool
     
     public var virtualPathPolicy: ((_ path: String) -> [String: (path: String, fullpath: Bool)])?
@@ -71,18 +72,24 @@ public struct SXVirtualFileSystem {
         self.directoryAccessable = allowDir
     }
     
+    public enum Error: Swift.Error {
+        case notfound
+        case restricted
+        case inavailable
+    }
+    
 }
 
 public extension SXVirtualFileSystem {
     
-    public func contents(at path: String, isDirectory: Bool) -> Data? {
-        if isDirectory && directoryRepresentation != nil {
-            return directoryRepresentation!(path)
-        }
-        
-        return FileManager.default.contents(atPath: path)
-    }
-    
+//    public func contents(at path: String, isDirectory: Bool) -> Data? {
+//        if isDirectory && directoryRepresentation != nil {
+//            return directoryRepresentation!(path)
+//        }
+//        
+//        return FileManager.default.contents(atPath: path)
+//    }
+//    
     public func contentIsRestricted(at path: String, isDir: Bool) -> Bool {
         if isDir && !directoryAccessable { return true }
         
@@ -109,16 +116,54 @@ public extension SXVirtualFileSystem {
         return false
     }
     
-    public func resource(atPath path: String) -> Resource {
+    public mutating func resource(at path: String) throws -> SXFileCache.CachedType {
         
-        guard let fullpath = expandToFullPath(path: root + path, virtualPathPolicy: virtualPathPolicy) ,
-            fullpath != "" else { return .notfound(resourceNotFoundRepresentation?(path)) }
-        
-        var isDir = ObjCBool(false)
-        
-        let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
-        
-        return exists ? contentIsRestricted(at: fullpath, isDir: isDir.boolValue) ? .restricted(restrictedResourcesRepresentation?(fullpath)) : .available(contents(at: fullpath, isDirectory: isDir.boolValue)) : .notfound(resourceNotFoundRepresentation?(fullpath))
+        if let fullpath = fullpathMap[path] {
+            
+            // Never skip a single error check
+            var isDir = ObjCBool(false)
+            
+            let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
+            
+            if !exists {
+                throw Error.notfound
+            }
+            
+            if contentIsRestricted(at: fullpath, isDir: isDir.boolValue) {
+                throw Error.restricted
+            }
+            
+            guard let content = SXFileCache.`default`.request(for: fullpath) else {
+                self.fullpathMap[path] = nil
+                throw Error.inavailable
+            }
+            return content
+        } else {
+            guard
+            let fullpath = expandToFullPath(path: root + path, virtualPathPolicy: virtualPathPolicy),
+                fullpath != "" else {
+                        throw Error.inavailable
+            }
+            
+            var isDir = ObjCBool(false)
+            
+            let exists = FileManager.default.fileExists(atPath: fullpath, isDirectory: &isDir)
+            
+            if !exists {
+                throw Error.notfound
+            }
+            
+            if contentIsRestricted(at: fullpath, isDir: isDir.boolValue) {
+                throw Error.restricted
+            }
+            
+            self.fullpathMap[path] = fullpath
+            guard let content = SXFileCache.`default`.request(for: fullpath) else {
+                self.fullpathMap[path] = nil
+                throw Error.inavailable
+            }
+            return content
+        }
     }
 }
 

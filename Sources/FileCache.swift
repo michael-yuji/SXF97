@@ -40,6 +40,8 @@ import struct Foundation.Date
 
 public final class SXFileCache {
     
+    public static var `default`: SXFileCache = SXFileCache()
+    
     public enum CachedType {
         case fileDescriptor(Int32)
         case rawData(Data)
@@ -124,7 +126,10 @@ public final class SXFileCache {
                         return
                     }
                 }
-                self.cacheMap[path] = .rawData(generator())
+                guard let gen = self.cachedGenerator[path] else {
+                    return
+                }
+                self.cacheMap[path] = .rawData(gen())
                 nextRefresh()
             }
         }
@@ -174,6 +179,11 @@ public final class SXFileCache {
         }
         
         return data
+    }
+    
+    public func removeCache(at path: String) {
+        self.cacheMap[path] = nil
+        self.cachedGenerator[path] = nil
     }
     
 }
