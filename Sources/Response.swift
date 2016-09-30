@@ -201,6 +201,20 @@ public extension HTTPResponse {
         self.content = SXFileCache.`default`.request(for: file)
     }
     
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String : [String]] = [:], content: SXFileCache.CachedType) {
+        self.status = HTTPStatus(raw: status)!
+        self.headerFields = entries
+        self.version = version
+        self.content = content
+    }
+    
+    public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], content: SXFileCache.CachedType) {
+        self.status = status
+        self.headerFields = entries
+        self.version = version
+        self.content = content
+    }
+    
     public init(data: Data) throws {
         
         var dataReader = DataReader(fromData: data)
