@@ -95,22 +95,25 @@ public extension SXConnectionSocket {
             
             if mode == .http || mode == .https {
                 var response = try HTTPResponse(data: data)
-                
-                if response.exist(valueOf: "chunked", inField: HTTPResponseEntry.TransferEncoding)
-                    && response.content.length >= 5 {
-                    
-                    let chunkedContent = response.content
-                    var reformedDataPool = try readChunked(data: chunkedContent)
-                    
-                    while !reformedDataPool.0 {
-                        guard let newPayload = try connectionSocket.read() else {
-                            break
+                if let content = response.content {
+                    if response.exist(valueOf: "chunked", inField: HTTPResponseEntry.TransferEncoding)
+                        && content.length >= 5 {
+                        
+                        let chunkedContent = response.content
+                        if let data = chunkedContent?.dataValue {
+                            var reformedDataPool = try readChunked(data: data)
+                            
+                            while !reformedDataPool.0 {
+                                guard let newPayload = try connectionSocket.read() else {
+                                    break
+                                }
+                                let x = try readChunked(data: newPayload)
+                                reformedDataPool.0 = x.0
+                                reformedDataPool.1.append(x.1)
+                            }
+                            response.content = .rawData(reformedDataPool.1)
                         }
-                        let x = try readChunked(data: newPayload)
-                        reformedDataPool.0 = x.0
-                        reformedDataPool.1.append(x.1)
                     }
-                    response.content = reformedDataPool.1
                 }
                 return handler(.http(response))
             }
@@ -132,9 +135,27 @@ public enum HTTPTypes {
 public protocol HTTP {
     var version: HTTPVersion {get}
     var type: HTTPTypes {get}
-    var content: Data {get set}
+    var content: SXFileCache.CachedType? {get set}
     var statusline: String {get}
     var headerFields: [String: [String]] {get set}
+}
+
+extension HTTP {
+    public func send(to socket: Writable) throws {
+        guard let socket = socket  as? (Socket & Writable) else {
+            return
+        }
+        if let content = self.content {
+            switch content {
+            case let .fileDescriptor(fd):
+                try socket.write(file: fd, header: self.rawHeader)
+            case .rawData:
+                try socket.write(data: raw)
+            }
+        } else {
+            try socket.write(data: self.rawHeader)
+        }
+    }
 }
 
 extension HTTP {
@@ -177,7 +198,17 @@ extension HTTP {
     public var raw: Data {
         var data = headerFields.reduce("\(statusline)\r\n", {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
         data!.append(Data.crlf)
-        data!.append(self.content)
+        if let content = content {
+            if let raw = content.dataValue {
+                data!.append(raw)
+            }
+        }
+        return data!
+    }
+    
+    public var rawHeader: Data {
+        var data = headerFields.reduce("\(statusline)\r\n", {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
+        data!.append(Data.crlf)
         return data!
     }
     
@@ -214,7 +245,7 @@ extension HTTP {
         } while !line.isEmpty
 
         if !ignoreContent {
-            content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
+            content = .rawData(dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex))
         }
     }
 }

@@ -34,7 +34,7 @@ import spartanX
 public struct HTTPRequest: HTTP {
     public var version: HTTPVersion
     public var type: HTTPTypes = .request
-    public var content: Data = Data()
+    public var content: SXFileCache.CachedType?
     public var method: HTTPMethod
     public var uri: URL
     public var headerFields: [String : [String]] = [:]
@@ -56,7 +56,7 @@ public extension HTTPRequest {
         self.uri = URL(string: resource)!
         self.headerFields = additionalInfo
         if let content = content {
-            self.content = content
+            self.content = .rawData(content)
             self.headerFields[HTTPRequestEntry.ContentLength] = ["\(content.count)"]
         }
     }

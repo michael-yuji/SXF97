@@ -62,7 +62,7 @@ public struct Cookie: CustomStringConvertible {
 }
 
 public struct HTTPResponse: HTTP {
-    public var content: Data = Data()
+    public var content: SXFileCache.CachedType?
     public var version: HTTPVersion
     public var type = HTTPTypes.response
     public var headerFields: [String: [String]] = [:]
@@ -85,12 +85,14 @@ public extension HTTPResponse {
     public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], with payload: Data?, gzip: Bool = false) {
         self.status = status
         self.headerFields = entries
-        self.content = payload ?? Data()
+        self.content = payload == nil ? nil : .rawData(payload!)
         self.version = version
-        if content.count > 0 {
-            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
-            if gzip {
-                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+        if let content = self.content {
+            if content.length > 0 {
+                self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                if gzip {
+                    self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                }
             }
         }
     }
@@ -99,48 +101,88 @@ public extension HTTPResponse {
         self.status = status
         self.headerFields = entries
         self.version = version
-        if gzip && payload != nil {
-            self.content = (try? payload!.data(using: .utf8)!.gzipped()) ?? Data()
-        } else {
-            self.content = payload?.data(using: .utf8) ?? Data()
-        }
-        if content.count > 0 {
-            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
-            if gzip {
-                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+        if payload != nil {
+            if payload!.data(using: .ascii) != nil {
+                if gzip {
+                    if let data = try? payload!.data(using: .utf8)!.gzipped() {
+                        self.content = .rawData(data)
+                    }
+                    
+                } else {
+                    if let data = payload?.data(using: .utf8) {
+                        self.content = .rawData(data)
+                    }
+                }
+                
+                if let content = self.content {
+                    if content.length > 0 {
+                        self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                        if gzip {
+                            self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                        }
+                    }
+                }
+                
             }
         }
-        
-        self.content = payload == nil ? Data() : payload?.data(using: .utf8) ?? Data()
-        self.version = version
     }
     
     public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String : [String]] = [:], with payload: Data?, gzip: Bool = false) {
         self.status = HTTPStatus(raw: status)!
         self.headerFields = entries
-        self.content = payload ?? Data()
         self.version = version
-        if content.count > 0 {
-            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
+        if payload != nil {
+            
             if gzip {
-                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                if let data = try? payload!.gzipped() {
+                    self.content = .rawData(data)
+                }
+                
+            } else {
+                if let data = payload {
+                    self.content = .rawData(data)
+                }
             }
+            
+            if let content = self.content {
+                if content.length > 0 {
+                    self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                    if gzip {
+                        self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                    }
+                }
+            }
+            
+        
         }
     }
     
     public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: Int, entries: [String: [String]] = [:], text payload: String?, gzip: Bool = false) {
         self.status = HTTPStatus(raw: status)!
         self.headerFields = entries
-        if gzip && payload != nil {
-            self.content = (try? payload!.data(using: .utf8)!.gzipped()) ?? Data()
-        } else {
-            self.content = payload?.data(using: .utf8) ?? Data()
-        }
         self.version = version
-        if content.count > 0 {
-            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.count)"]
-            if gzip {
-                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+        if payload != nil {
+            if payload!.data(using: .ascii) != nil {
+                if gzip {
+                    if let data = try? payload!.data(using: .utf8)!.gzipped() {
+                        self.content = .rawData(data)
+                    }
+                    
+                } else {
+                    if let data = payload?.data(using: .utf8) {
+                        self.content = .rawData(data)
+                    }
+                }
+                
+                if let content = self.content {
+                    if content.length > 0 {
+                        self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                        if gzip {
+                            self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                        }
+                    }
+                }
+                
             }
         }
     }

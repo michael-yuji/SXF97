@@ -58,7 +58,12 @@ public struct HTTPService : SXStreamSocketService {
                 }
                 
                 if let response = newValue(httprequest, address ?? "") {
-                    try! queue.writeAgent.write(data: response.raw)
+//                    try! queue.writeAgent.write(data: response.raw)
+                    do {
+                        try response.send(to: queue.writeAgent)
+                    } catch {
+//                        return nil
+                    }
                 }
             }
         }
@@ -85,7 +90,8 @@ public struct HTTPService : SXStreamSocketService {
             }
             
             if let response = handler(httprequest, address ?? "") {
-                try! queue.writeAgent.write(data: response.raw)
+//                try! queue.writeAgent.write(data: response.raw)
+                try response.send(to: queue.writeAgent)
             }
         }
     }
