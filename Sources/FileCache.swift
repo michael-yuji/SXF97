@@ -79,25 +79,6 @@ public final class SXFileCache {
         case generator(() -> Data)
     }
     
-    /*
-    private var lastAccess = [String: DispatchTime]()
-     
-    public enum TimeoutMode {
-        case absolute
-        case relative
-    }
-    
-    public struct Timeout {
-        public var time: Double
-        public var mode: TimeoutMode
-        
-        public init(time: Double, mode: TimeoutMode) {
-            self.time = time
-            self.mode = mode
-        }
-    }
-    */
-    
     // realPath : fileDescriptor
     private var cacheMap = [String: CachedType]()
     private var cachedGenerator = [String : () -> Data]()

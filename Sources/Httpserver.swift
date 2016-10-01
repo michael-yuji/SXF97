@@ -35,21 +35,21 @@ public struct HTTPService : SXStreamSocketService {
     public var acceptedHandler: ((inout SXClientSocket) -> ())?
     public var willTerminateHandler: ((SXQueue) -> ())?
     public var didTerminateHandler: ((SXQueue) -> ())?
-    public var dataAvailable: (SXQueue, Int) throws -> ()
+    public var dataHandler: (SXQueue, Data) throws -> Bool
     
     public var handler: (HTTPRequest, String) -> HTTPResponse? {
         willSet {
-            self.dataAvailable = { (queue: SXQueue, availableDataCount: Int) in
-                guard let data = try? queue.readAgent.read() else {
-                    return
-                }
+            self.dataHandler = { (queue: SXQueue, data: Data) -> Bool in
+//                guard let data = try? queue.readAgent.read() else {
+//                    return
+//                }
+//                
+//                guard let unwrappedData = data else {
+//                    return
+//                }
                 
-                guard let unwrappedData = data else {
-                    return
-                }
-                
-                guard let httprequest = try? HTTPRequest(data: unwrappedData) else {
-                    return
+                guard let httprequest = try? HTTPRequest(data: data) else {
+                    return false
                 }
                 
                 var address: String? = ""
@@ -62,26 +62,25 @@ public struct HTTPService : SXStreamSocketService {
                     do {
                         try response.send(to: queue.writeAgent)
                     } catch {
-//                        return nil
+                        return false
                     }
                 }
+                
+                return true
             }
         }
     }
     
     public init(handler: @escaping (_ request: HTTPRequest, _ ip: String) -> HTTPResponse?) {
         self.handler = handler
-        self.dataAvailable = { (queue: SXQueue, availableDataCount: Int) in
-            guard let data = try? queue.readAgent.read() else {
-                return
-            }
+        self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
+//            
+//            guard let unwrappedData = data else {
+//                return
+//            }
             
-            guard let unwrappedData = data else {
-                return
-            }
-            
-            guard let httprequest = try? HTTPRequest(data: unwrappedData) else {
-                return
+            guard let httprequest = try? HTTPRequest(data: data) else {
+                return false
             }
             
             var address: String? = ""
@@ -93,6 +92,8 @@ public struct HTTPService : SXStreamSocketService {
 //                try! queue.writeAgent.write(data: response.raw)
                 try response.send(to: queue.writeAgent)
             }
+            
+            return true
         }
     }
 }
