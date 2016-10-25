@@ -51,7 +51,7 @@ public final class SXCacheManager {
         if let data = container[cached] {
             return data
         } else {
-            self.container.cacheFile(at: cached, as: cached, using: .lazyUp2Date, lifetime: .idleInterval(CCTimeInterval(sec: 300)), errHandle: errHandler)
+            self.container.cacheFile(at: cached, as: cached, using: .lazyUp2Date, lifetime: .idleInterval(CCTimeInterval(sec: 10)), errHandle: errHandler)
             return container[cached]
         }
     }

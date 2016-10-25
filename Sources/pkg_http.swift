@@ -63,7 +63,9 @@ extension HTTP {
     }
     
     public func send(with method: SendMethods, using socket: Writable) throws {
-        try socket.write(data: raw)
+        if let socket = socket as? SXClientSocket {
+            try socket.write(data: raw)
+        }
     }
 }
 
@@ -105,12 +107,14 @@ extension HTTP {
     }
     
     public var raw: Data {
-        var data = headerFields.reduce("\(statusline)\r\n", {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
-        data!.append(Data.crlf)
-        if let content = content {
-            data!.append(content)
+        return autoreleasepool {
+            var data = headerFields.reduce("\(statusline)\r\n", {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
+            data!.append(Data.crlf)
+            if let content = content {
+                data!.append(content)
+            }
+            return data!
         }
-        return data!
     }
     
     public var rawHeader: Data {
@@ -122,37 +126,40 @@ extension HTTP {
     mutating func parseHeaderFields(ignoreContent: Bool, dataReader: inout DataReader) throws {
         
         var line = ""
-        
-        repeat {
+        try autoreleasepool {
+            
+            repeat {
+            
+                guard let lineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
+                    let line_ = String(data: lineb, encoding: .utf8) else {
+                        throw HTTPErrors.headerContainsNonStringLiterial
+                }
+                
+                line = line_
+                
+                if line.isEmpty {
+                    break
+                }
+                
+                guard let range = line.range(of: ": " ) else {
+                    throw HTTPErrors.malformedEntry
+                }
+                
+                let key = line.substring(to: range.lowerBound)
+                let val = line.substring(with: range.upperBound..<line.endIndex)
+                
+                if let _ = headerFields[key] {
+                    headerFields[key]?.append(val)
+                } else {
+                    headerFields[key] = [val]
+                }
+            
+            
+            } while !line.isEmpty
 
-            guard let lineb = dataReader.nextSegmentOfData(separatedBy: Data.crlf),
-                let line_ = String(data: lineb, encoding: .utf8) else {
-                    throw HTTPErrors.headerContainsNonStringLiterial
+            if !ignoreContent {
+                content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
             }
-            
-            line = line_
-            
-            if line.isEmpty {
-                break
-            }
-            
-            guard let range = line.range(of: ": " ) else {
-                throw HTTPErrors.malformedEntry
-            }
-            
-            let key = line.substring(to: range.lowerBound)
-            let val = line.substring(with: range.upperBound..<line.endIndex)
-            
-            if let _ = headerFields[key] {
-                headerFields[key]?.append(val)
-            } else {
-                headerFields[key] = [val]
-            }
-            
-        } while !line.isEmpty
-
-        if !ignoreContent {
-            content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
         }
     }
 }

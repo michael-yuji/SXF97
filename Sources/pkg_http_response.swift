@@ -96,11 +96,13 @@ public extension HTTPResponse {
         self.version = version
         if let content = SXCacheManager.shared.get(cached: path) {
             if gzip {
-                do {
-                    self.content = try content.gzipped()
-                    self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
-                } catch {
-                    self.content = content
+                autoreleasepool {
+                    do {
+                        self.content = try content.gzipped()
+                        self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                    } catch {
+                        self.content = content
+                    }
                 }
             } else {
                 self.contentSource = .staticFile(path)
@@ -117,6 +119,7 @@ public extension HTTPResponse {
         self.version = version
         if let content = SXCacheManager.shared.get(cached: path) {
             if gzip {
+                
                 do {
                     self.content = try content.gzipped()
                     self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
@@ -124,6 +127,7 @@ public extension HTTPResponse {
                     self.contentSource = .staticFile(path)
                     self.content = content
                 }
+            
             } else {
                 self.content = content
             }
@@ -139,28 +143,30 @@ public extension HTTPResponse {
         self.status = status
         self.headerFields = entries
         self.version = version
-        if payload != nil {
-            if payload!.data(using: .ascii) != nil {
-                if gzip {
-                    if let data = try? payload!.data(using: .utf8)!.gzipped() {
-                        self.content = data
-                    }
-                    
-                } else {
-                    if let data = payload?.data(using: .utf8) {
-                        self.content = data
-                    }
-                }
-                
-                if let content = self.content {
-                    if content.length > 0 {
-                        self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
-                        if gzip {
-                            self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+        autoreleasepool {
+            if payload != nil {
+                if payload!.data(using: .ascii) != nil {
+                    if gzip {
+                        if let data = try? payload!.data(using: .utf8)!.gzipped() {
+                            self.content = data
+                        }
+                        
+                    } else {
+                        if let data = payload?.data(using: .utf8) {
+                            self.content = data
                         }
                     }
+                    
+                    if let content = self.content {
+                        if content.length > 0 {
+                            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                            if gzip {
+                                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                            }
+                        }
+                    }
+                    
                 }
-                
             }
         }
     }
@@ -169,28 +175,30 @@ public extension HTTPResponse {
         self.status = HTTPStatus(raw: status)!
         self.headerFields = entries
         self.version = version
-        if payload != nil {
-            if payload!.data(using: .ascii) != nil {
-                if gzip {
-                    if let data = try? payload!.data(using: .utf8)!.gzipped() {
-                        self.content = data
-                    }
-                    
-                } else {
-                    if let data = payload?.data(using: .utf8) {
-                        self.content = data
-                    }
-                }
-                
-                if let content = self.content {
-                    if content.length > 0 {
-                        self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
-                        if gzip {
-                            self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+        autoreleasepool {
+            if payload != nil {
+                if payload!.data(using: .ascii) != nil {
+                    if gzip {
+                        if let data = try? payload!.data(using: .utf8)!.gzipped() {
+                            self.content = data
+                        }
+                        
+                    } else {
+                        if let data = payload?.data(using: .utf8) {
+                            self.content = data
                         }
                     }
+                    
+                    if let content = self.content {
+                        if content.length > 0 {
+                            self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                            if gzip {
+                                self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                            }
+                        }
+                    }
+                    
                 }
-                
             }
         }
     }
@@ -201,13 +209,28 @@ public extension HTTPResponse {
     public init(httpVersion version: HTTPVersion = HTTPVersion.default, status: HTTPStatus, entries: [String : [String]] = [:], with payload: Data?, gzip: Bool = false) {
         self.status = status
         self.headerFields = entries
-        self.content = payload == nil ? nil : payload!
         self.version = version
-        if let content = self.content {
-            if content.length > 0 {
-                self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+        autoreleasepool {
+            if payload != nil {
+                
                 if gzip {
-                    self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                    if let data = try? payload!.gzipped() {
+                        self.content = data
+                    }
+                    
+                } else {
+                    if let data = payload {
+                        self.content = data
+                    }
+                }
+                
+                if let content = self.content {
+                    if content.length > 0 {
+                        self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                        if gzip {
+                            self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                        }
+                    }
                 }
             }
         }
@@ -217,24 +240,26 @@ public extension HTTPResponse {
         self.status = HTTPStatus(raw: status)!
         self.headerFields = entries
         self.version = version
-        if payload != nil {
-            
-            if gzip {
-                if let data = try? payload!.gzipped() {
-                    self.content = data
+        autoreleasepool {
+            if payload != nil {
+                
+                if gzip {
+                    if let data = try? payload!.gzipped() {
+                        self.content = data
+                    }
+                    
+                } else {
+                    if let data = payload {
+                        self.content = data
+                    }
                 }
                 
-            } else {
-                if let data = payload {
-                    self.content = data
-                }
-            }
-            
-            if let content = self.content {
-                if content.length > 0 {
-                    self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
-                    if gzip {
-                        self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                if let content = self.content {
+                    if content.length > 0 {
+                        self.headerFields[HTTPResponseEntry.ContentLength] = ["\(content.length)"]
+                        if gzip {
+                            self.headerFields[HTTPResponseEntry.ContentEncoding] = ["gzip"]
+                        }
                     }
                 }
             }

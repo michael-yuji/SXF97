@@ -52,7 +52,11 @@ public struct HTTPService : SXStreamSocketService {
                 }
                 
                 if let response = newValue(httprequest, address ?? "") {
+                    do {
                     try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
+                    } catch {
+                        print(error)
+                    }
                 }
                 
                 return true
@@ -63,21 +67,33 @@ public struct HTTPService : SXStreamSocketService {
     public init(handler: @escaping (_ request: HTTPRequest, _ ip: String) -> HTTPResponse?) {
         self.handler = handler
         self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
-
-            guard let httprequest = try? HTTPRequest(data: data) else {
-                return false
-            }
             
-            var address: String? = ""
-            if let socket = queue.readAgent as? SXClientSocket {
-                address = socket.address?.ipaddress
+            autoreleasepool {
+                guard let httprequest = try? HTTPRequest(data: data) else {
+                    return false
+                }
+                
+                var address: String? = ""
+                if let socket = queue.readAgent as? SXClientSocket {
+                    address = socket.address?.ipaddress
+                }
+                
+                let _response = autoreleasepool(invoking: { () -> HTTPResponse? in
+                    return handler(httprequest, address ?? "")
+                })
+                
+                if let response = _response {
+                    
+                    do {
+                        try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
+                        
+                    } catch {
+                        print(error)
+                    }
+                }
+                
+                return true
             }
-            
-            if let response = handler(httprequest, address ?? "") {
-                try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
-            }
-            
-            return true
         }
     }
 }

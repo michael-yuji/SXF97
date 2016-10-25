@@ -80,7 +80,7 @@ public extension SXVirtualFileSystem {
             return directoryRepresentation!(path)
         }
         
-        return FileManager.default.contents(atPath: path)
+        return SXCacheManager.shared.get(cached: path, errHandler: nil)
     }
     
     public func contentIsRestricted(at path: String, isDir: Bool) -> Bool {

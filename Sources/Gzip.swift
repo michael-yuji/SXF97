@@ -198,24 +198,26 @@ public extension Data {
             throw GzipError(code: status, msg: stream.msg)
         }
         
-        var data = Data(capacity: CHUNK_SIZE)
-        while stream.avail_out == 0 {
-            if Int(stream.total_out) >= data.count {
-                data.count += CHUNK_SIZE
+        return autoreleasepool {
+            var data = Data(capacity: CHUNK_SIZE)
+            while stream.avail_out == 0 {
+                if Int(stream.total_out) >= data.count {
+                    data.count += CHUNK_SIZE
+                }
+                
+                data.withUnsafeMutableBytes { (bytes: UnsafeMutablePointer<Bytef>) in
+                    stream.next_out = bytes.advanced(by: Int(stream.total_out))
+                }
+                stream.avail_out = uInt(data.count) - uInt(stream.total_out)
+                
+                deflate(&stream, Z_FINISH)
             }
             
-            data.withUnsafeMutableBytes { (bytes: UnsafeMutablePointer<Bytef>) in
-                stream.next_out = bytes.advanced(by: Int(stream.total_out))
-            }
-            stream.avail_out = uInt(data.count) - uInt(stream.total_out)
+            deflateEnd(&stream)
+            data.count = Int(stream.total_out)
             
-            deflate(&stream, Z_FINISH)
+            return data
         }
-        
-        deflateEnd(&stream)
-        data.count = Int(stream.total_out)
-        
-        return data
     }
     
     
@@ -249,17 +251,18 @@ public extension Data {
         var data = Data(capacity: self.count * 2)
         
         repeat {
-            if Int(stream.total_out) >= data.count {
-                data.count += self.count / 2;
+            autoreleasepool {
+                if Int(stream.total_out) >= data.count {
+                    data.count += self.count / 2;
+                }
+                
+                data.withUnsafeMutableBytes { (bytes: UnsafeMutablePointer<Bytef>) in
+                    stream.next_out = bytes.advanced(by: Int(stream.total_out))
+                }
+                stream.avail_out = uInt(data.count) - uInt(stream.total_out)
+                
+                status = inflate(&stream, Z_SYNC_FLUSH)
             }
-            
-            data.withUnsafeMutableBytes { (bytes: UnsafeMutablePointer<Bytef>) in
-                stream.next_out = bytes.advanced(by: Int(stream.total_out))
-            }
-            stream.avail_out = uInt(data.count) - uInt(stream.total_out)
-            
-            status = inflate(&stream, Z_SYNC_FLUSH)
-            
         } while status == Z_OK
         
         guard inflateEnd(&stream) == Z_OK && status == Z_STREAM_END else {
