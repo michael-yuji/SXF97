@@ -47,6 +47,8 @@ public struct HTTPResponse: HTTP {
     }
 }
 
+extension HTTPResponse : Transmittable {}
+
 public extension HTTPResponse {
     
     public var statusline: String {

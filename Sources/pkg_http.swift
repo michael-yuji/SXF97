@@ -56,29 +56,14 @@ public protocol HTTP {
     var statusline: String {get}
     var headerFields: [String: [String]] {get set}
 }
-extension HTTP {
-    public func send(to socket: Writable) throws {
-        guard let socket = socket  as? (Socket & Writable) else {
-            return
-        }
-        if let content = self.content {
 
-//            if let source = contentSource {
-//                switch source {
-//                case let .staticFile(path):
-//                    guard let fd = SXCacheManager.shared.fdAvailable(path: path) else {
-//                        break
-//                    }
-//                    try socket.write(file: fd, header: self.rawHeader)
-//                    return
-//                }
-            
-            try socket.write(data: content)
-//            }
-            
-        } else {
-            try socket.write(data: self.rawHeader)
-        }
+extension HTTP {
+    public var sendOptions: SendMethods {
+        return [.send, .sendfile]
+    }
+    
+    public func send(with method: SendMethods, using socket: Writable) throws {
+        try socket.write(data: raw)
     }
 }
 

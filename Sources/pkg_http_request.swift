@@ -41,6 +41,8 @@ public struct HTTPRequest: HTTP {
     public var headerFields: [String : [String]] = [:]
 }
 
+extension HTTPRequest : Transmittable {}
+
 public extension HTTPRequest {
     
     public var queries: [String: String] {

@@ -36,6 +36,7 @@ public struct HTTPService : SXStreamSocketService {
     public var willTerminateHandler: ((SXQueue) -> ())?
     public var didTerminateHandler: ((SXQueue) -> ())?
     public var dataHandler: (SXQueue, Data) throws -> Bool
+    public static var supportedMethods: SendMethods = [.send, .sendfile]
     
     public var handler: (HTTPRequest, String) -> HTTPResponse? {
         willSet {
@@ -51,7 +52,7 @@ public struct HTTPService : SXStreamSocketService {
                 }
                 
                 if let response = newValue(httprequest, address ?? "") {
-                    try response.send(to: queue.writeAgent)
+                    try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
                 }
                 
                 return true
@@ -73,7 +74,7 @@ public struct HTTPService : SXStreamSocketService {
             }
             
             if let response = handler(httprequest, address ?? "") {
-                try response.send(to: queue.writeAgent)
+                try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
             }
             
             return true
