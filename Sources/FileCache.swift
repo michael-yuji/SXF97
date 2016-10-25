@@ -32,165 +32,36 @@ import Darwin
 #else
 import Glibc
 #endif
-import CKit
-import Dispatch
 
+import CoreCache
+import struct Foundation.UUID
 import struct Foundation.Data
-import struct Foundation.Date
+public typealias CacheId = String
+public typealias SXFileCache = SXCacheManager
 
-public final class SXFileCache {
+public final class SXCacheManager {
+    public static var shared = SXCacheManager()
+    internal var container = CacheContainer(refreshResulotion: CCTimeInterval(milisec: 100))
     
-    public static var `default`: SXFileCache = SXFileCache()
+    public func fdAvailable(path: String) -> Int32? {
+        return container.currentFd(of: path)
+    }
     
-    public enum CachedType {
-        case fileDescriptor(Int32)
-        case rawData(Data)
-        
-        public var dataValue: Data? {
-            switch self {
-            case let .fileDescriptor(fd):
-                guard let file_status = try? FileStatus(fd: fd) else {
-                    return nil
-                }
-                var buffer = [UInt8](repeating: 0, count: file_status.size)
-                read(fd, &buffer, file_status.size)
-                return Data(bytes: buffer)
-            case let .rawData(data):
-                return data
-            }
-        }
-        
-        public var length: Int {
-            switch self {
-            case let .fileDescriptor(fd):
-                guard let file_status = try? FileStatus(fd: fd) else {
-                    return 0
-                }
-                return file_status.size
-                
-            case let .rawData(data):
-                return data.length
-            }
+    public func get(cached: String, errHandler: ((String, Error) -> ())? = nil) -> Data? {
+        if let data = container[cached] {
+            return data
+        } else {
+            self.container.cacheFile(at: cached, as: cached, using: .lazyUp2Date, lifetime: .idleInterval(CCTimeInterval(sec: 300)), errHandle: errHandler)
+            return container[cached]
         }
     }
     
-    private enum CachedTypeInternal {
-        case fileDescriptor(Int32)
-        case generator(() -> Data)
-    }
-    
-    // realPath : fileDescriptor
-    private var cacheMap = [String: CachedType]()
-    private var cachedGenerator = [String : () -> Data]()
-    
-    public func request(for file: String) -> CachedType? {
-        guard let cached = cacheMap[file] else {
-            let filefd = open(file, O_RDWR)
-            if filefd == -1 {
-                return nil
-            }
-            self.cacheMap[file] = .fileDescriptor(filefd)
-            return .fileDescriptor(filefd)
-        }
-        return cached
-    }
-    
-    public func cacheDynamic(as path: String, refreshInterval: Double, expiration: Date?, generator: @escaping () -> Data) {
-        self.cachedGenerator[path] = generator
-        self.cacheMap[path] = .rawData(generator())
-        func nextRefresh() {
-            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + refreshInterval) {
-                if let expiration = expiration {
-                    if expiration > Date() {
-                        self.cacheMap[path] = nil
-                        self.cachedGenerator[path] = nil
-                        return
-                    }
-                }
-                guard let gen = self.cachedGenerator[path] else {
-                    return
-                }
-                self.cacheMap[path] = .rawData(gen())
-                nextRefresh()
-            }
+    public func getStaticFile(path: String, errHandler: ((String, Error) -> ())? = nil) -> Int32? {
+        if let fd = container.currentFd(of: path) {
+            return fd
+        } else {
+            self.container.cacheFile(at: path, as: path, using: .noReserve, lifetime: .idleInterval(CCTimeInterval(sec: 300)), errHandle: errHandler)
+            return container.currentFd(of: path)
         }
     }
-
-    public func cacheStatic(as path: String, content: Data, expiration: Date?) {
-        self.cacheMap[path] = .rawData(content)
-        if let expiration = expiration {
-            let deltaTimeInterval = expiration.timeIntervalSinceNow
-            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + deltaTimeInterval, execute: {
-                self.cacheMap[path] = nil
-            })
-        }
-    }
-    
-    public func cacheFile(at path: String, expiration: Date?) {
-        let filefd = open(path, O_RDWR)
-        self.cacheMap[path] = .fileDescriptor(filefd)
-        if let expiration = expiration {
-            let deltaTimeInterval = expiration.timeIntervalSinceNow
-            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + deltaTimeInterval, execute: {
-                self.cacheMap[path] = nil
-                close(filefd)
-            })
-        }
-    }
-    
-    public func cacheFileContent(at path: String, expiration: Date?) -> Data? {
-        let filefd = open(path, O_RDWR)
-        
-        guard let filesize = try? FileStatus(fd: filefd).size else {
-            return nil
-        }
-        
-        guard let buffer = mmap(nil, filesize, PROT_READ | PROT_WRITE, 0, filefd, 0) else {
-            return nil
-        }
-        
-        let data = Data(bytesNoCopy: buffer, count: filesize, deallocator: .unmap)
-        
-        self.cacheMap[path] = .rawData(data)
-        if let expiration = expiration {
-            let deltaTimeInterval = expiration.timeIntervalSinceNow
-            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + deltaTimeInterval, execute: {
-                self.cacheMap[path] = nil
-            })
-        }
-        
-        return data
-    }
-    
-    public func removeCache(at path: String) {
-        self.cacheMap[path] = nil
-        self.cachedGenerator[path] = nil
-    }
-    
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

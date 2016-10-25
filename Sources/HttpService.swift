@@ -39,14 +39,7 @@ public struct HTTPService : SXStreamSocketService {
     
     public var handler: (HTTPRequest, String) -> HTTPResponse? {
         willSet {
-            self.dataHandler = { (queue: SXQueue, data: Data) -> Bool in
-//                guard let data = try? queue.readAgent.read() else {
-//                    return
-//                }
-//                
-//                guard let unwrappedData = data else {
-//                    return
-//                }
+            self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
                 
                 guard let httprequest = try? HTTPRequest(data: data) else {
                     return false
@@ -58,12 +51,7 @@ public struct HTTPService : SXStreamSocketService {
                 }
                 
                 if let response = newValue(httprequest, address ?? "") {
-//                    try! queue.writeAgent.write(data: response.raw)
-                    do {
-                        try response.send(to: queue.writeAgent)
-                    } catch {
-                        return false
-                    }
+                    try response.send(to: queue.writeAgent)
                 }
                 
                 return true
@@ -74,11 +62,7 @@ public struct HTTPService : SXStreamSocketService {
     public init(handler: @escaping (_ request: HTTPRequest, _ ip: String) -> HTTPResponse?) {
         self.handler = handler
         self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
-//            
-//            guard let unwrappedData = data else {
-//                return
-//            }
-            
+
             guard let httprequest = try? HTTPRequest(data: data) else {
                 return false
             }
@@ -89,7 +73,6 @@ public struct HTTPService : SXStreamSocketService {
             }
             
             if let response = handler(httprequest, address ?? "") {
-//                try! queue.writeAgent.write(data: response.raw)
                 try response.send(to: queue.writeAgent)
             }
             

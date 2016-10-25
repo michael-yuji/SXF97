@@ -43,115 +43,39 @@ public enum HTTPMethod : String {
     case patch = "PATCH"
 }
 
-public enum F97ConnectionMode {
-    case http
-    case https
-    case tcp
-    case tcpTls
-}
-
-public enum F97Response {
-    case http(HTTPResponse)
-    case error(Error)
-    case raw(Data)
-}
-
-public extension SXConnectionSocket {
-    
-    public static func oneshot<Result>(with mode: F97ConnectionMode, host: String, service: String, request: Data?, handler: (F97Response) -> Result) -> Result {
-        do {
-            var connectionSocket: SXConnectionSocket!
-            
-            switch mode {
-            case .http, .tcp:
-                connectionSocket = try SXConnectionSocket(hostname: host, service: service)
-            case .https, .tcpTls:
-                connectionSocket = try SXConnectionSocket(tls: true, hostname: host, service: service, type: .stream, protocol: 0)
-            }
-            
-            if let request = request {
-                try connectionSocket.write(data: request)
-            }
-            
-            var proceed = false
-            
-            func readChunked(data: Data) throws -> (Bool, Data) {
-                var reader = DataReader(fromData: data)
-                let t = data.subdata(in: data.index(data.length, offsetBy: -5)..<data.index(data.length, offsetBy: 0)) == Data(bytes: [0x30, 0x0d, 0x0a, 0x0d, 0x0a])
-                
-                guard
-                    let n_bytes_string_in_binary = reader.nextSegmentOfData(separatedBy: Data.crlf),
-                    let n_bytes_string = String(data: n_bytes_string_in_binary, encoding: .ascii),
-                    let n_bytes = Int(n_bytes_string, radix: 16) else {
-                        throw HTTPErrors.malformedEntry
-                }
-                
-                return (t, data.subdata(in: data.index(reader.currentOffset, offsetBy: 0)..<data.index(reader.currentOffset, offsetBy: n_bytes)))
-                
-            }
-            
-            
-            let data = try connectionSocket.read()!
-            
-            if mode == .http || mode == .https {
-                var response = try HTTPResponse(data: data)
-                if let content = response.content {
-                    if response.exist(valueOf: "chunked", inField: HTTPResponseEntry.TransferEncoding)
-                        && content.length >= 5 {
-                        
-                        let chunkedContent = response.content
-                        if let data = chunkedContent?.dataValue {
-                            var reformedDataPool = try readChunked(data: data)
-                            
-                            while !reformedDataPool.0 {
-                                guard let newPayload = try connectionSocket.read() else {
-                                    break
-                                }
-                                let x = try readChunked(data: newPayload)
-                                reformedDataPool.0 = x.0
-                                reformedDataPool.1.append(x.1)
-                            }
-                            response.content = .rawData(reformedDataPool.1)
-                        }
-                    }
-                }
-                return handler(.http(response))
-            }
-            
-            return handler(.raw(data))
-            
-        } catch {
-            return handler(.error(error))
-        }
-    }
-}
-
-
-public enum HTTPTypes {
+public enum HTTPRoles {
     case request
     case response
 }
 
 public protocol HTTP {
     var version: HTTPVersion {get}
-    var type: HTTPTypes {get}
-    var content: SXFileCache.CachedType? {get set}
+    var type: HTTPRoles {get}
+    var content: Data? {get set}
+    var contentSource: ContentSource? {get set}
     var statusline: String {get}
     var headerFields: [String: [String]] {get set}
 }
-
 extension HTTP {
     public func send(to socket: Writable) throws {
         guard let socket = socket  as? (Socket & Writable) else {
             return
         }
         if let content = self.content {
-            switch content {
-            case let .fileDescriptor(fd):
-                try socket.write(file: fd, header: self.rawHeader)
-            case .rawData:
-                try socket.write(data: raw)
-            }
+
+//            if let source = contentSource {
+//                switch source {
+//                case let .staticFile(path):
+//                    guard let fd = SXCacheManager.shared.fdAvailable(path: path) else {
+//                        break
+//                    }
+//                    try socket.write(file: fd, header: self.rawHeader)
+//                    return
+//                }
+            
+            try socket.write(data: content)
+//            }
+            
         } else {
             try socket.write(data: self.rawHeader)
         }
@@ -199,9 +123,7 @@ extension HTTP {
         var data = headerFields.reduce("\(statusline)\r\n", {"\($0)\(expandHeader(key: $1.key, value: $1.value))"}).data(using: .utf8)
         data!.append(Data.crlf)
         if let content = content {
-            if let raw = content.dataValue {
-                data!.append(raw)
-            }
+            data!.append(content)
         }
         return data!
     }
@@ -245,7 +167,7 @@ extension HTTP {
         } while !line.isEmpty
 
         if !ignoreContent {
-            content = .rawData(dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex))
+            content = dataReader.origin.subdata(in: dataReader.origin.index(0, offsetBy: dataReader.currentOffset)..<dataReader.origin.endIndex)
         }
     }
 }
