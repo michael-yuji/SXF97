@@ -38,7 +38,7 @@ public struct HTTPService : SXStreamSocketService {
     public var dataHandler: (SXQueue, Data) throws -> Bool
     public static var supportedMethods: SendMethods = [.send, .sendfile]
     
-    public var handler: (HTTPRequest, String) -> HTTPResponse? {
+    public var handler: ((HTTPRequest, String) -> HTTPResponse?)? {
         willSet {
             self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
                 
@@ -51,7 +51,7 @@ public struct HTTPService : SXStreamSocketService {
                     address = socket.address?.ipaddress
                 }
                 
-                if let response = newValue(httprequest, address ?? "") {
+                if let response = newValue?(httprequest, address ?? "") {
                     try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
 
                 }
@@ -77,6 +77,33 @@ public struct HTTPService : SXStreamSocketService {
                 
                 let _response = autoreleasepool(invoking: { () -> HTTPResponse? in
                     return handler(httprequest, address ?? "")
+                })
+                
+                if let response = _response {
+                    try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
+                }
+                
+                return true
+            }
+        }
+    }
+    
+    public init(router: SXRouter) {
+        
+        self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
+            
+            try autoreleasepool {
+                guard let httprequest = try? HTTPRequest(data: data) else {
+                    return false
+                }
+                
+                var address: String? = ""
+                if let socket = queue.readAgent as? SXClientSocket {
+                    address = socket.address?.ipaddress
+                }
+                
+                let _response = autoreleasepool(invoking: { () -> HTTPResponse? in
+                    return router.ApiLookup(rq: httprequest, ip: address ?? "")
                 })
                 
                 if let response = _response {
