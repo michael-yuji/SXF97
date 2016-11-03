@@ -30,8 +30,23 @@
 import Foundation
 import spartanX
 
+public typealias Exception = Error
+
+public enum HTTPException: Exception {
+    case switchService(SXService)
+}
+
 public struct HTTPService : SXStreamSocketService {
-    public var errHandler: ((SXQueue, Error) -> ())?
+    
+    public var errHandler: ((SXQueue, Error) -> ())? =  {
+            guard let exception = $1 as? HTTPException else {
+                return
+            }
+            if case var .switchService(service) = exception {
+                $0.service = service
+            }
+        }
+    
     public var acceptedHandler: ((inout SXClientSocket) -> ())?
     public var willTerminateHandler: ((SXQueue) -> ())?
     public var didTerminateHandler: ((SXQueue) -> ())?
@@ -53,7 +68,6 @@ public struct HTTPService : SXStreamSocketService {
                 
                 if let response = newValue?(httprequest, address ?? "") {
                     try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
-
                 }
                 
                 return true
