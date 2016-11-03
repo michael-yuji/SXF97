@@ -46,10 +46,6 @@ public enum Resource {
     }
 #endif
 
-protocol SXVirtualFileSystemContainer {
-    
-}
-
 public struct SXVirtualFileSystem {
     
     public var root: String
@@ -79,7 +75,6 @@ public extension SXVirtualFileSystem {
         if isDirectory && directoryRepresentation != nil {
             return directoryRepresentation!(path)
         }
-        
         return SXCacheManager.shared.get(cached: path, errHandler: nil)
     }
     

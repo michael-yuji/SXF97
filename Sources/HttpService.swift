@@ -52,11 +52,8 @@ public struct HTTPService : SXStreamSocketService {
                 }
                 
                 if let response = newValue(httprequest, address ?? "") {
-                    do {
                     try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
-                    } catch {
-                        print(error)
-                    }
+
                 }
                 
                 return true
@@ -68,7 +65,7 @@ public struct HTTPService : SXStreamSocketService {
         self.handler = handler
         self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
             
-            autoreleasepool {
+            try autoreleasepool {
                 guard let httprequest = try? HTTPRequest(data: data) else {
                     return false
                 }
@@ -83,13 +80,7 @@ public struct HTTPService : SXStreamSocketService {
                 })
                 
                 if let response = _response {
-                    
-                    do {
-                        try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
-                        
-                    } catch {
-                        print(error)
-                    }
+                    try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
                 }
                 
                 return true
