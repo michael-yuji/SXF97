@@ -31,21 +31,30 @@ import Foundation
 import spartanX
 
 public typealias Exception = Error
+public typealias SXConnection = SXQueue
 
 public enum HTTPException: Exception {
-    case switchService(SXService)
+    case switchService(SXService, Data)
+    case upgradeService(SXService, HTTPResponse)
 }
 
 public struct HTTPService : SXStreamSocketService {
     
     public var errHandler: ((SXQueue, Error) -> ())? =  {
-            guard let exception = $1 as? HTTPException else {
-                return
-            }
-            if case var .switchService(service) = exception {
-                $0.service = service
-            }
+        guard let exception = $1 as? HTTPException else {
+            return
         }
+        
+        if case var .switchService(service, initialPayload) = exception {
+            $0.service = service
+            _ = try? service.dataHandler($0, initialPayload)
+        }
+        
+        if case var .upgradeService(service, res) = exception {
+            _ = try? res.send(with: HTTPService.supportedMethods.intersection($0.supportedMethods), using: $0.writeAgent)
+            $0.service = service
+        }
+    }
     
     public var acceptedHandler: ((inout SXClientSocket) -> ())?
     public var willTerminateHandler: ((SXQueue) -> ())?
@@ -53,7 +62,7 @@ public struct HTTPService : SXStreamSocketService {
     public var dataHandler: (SXQueue, Data) throws -> Bool
     public static var supportedMethods: SendMethods = [.send, .sendfile]
     
-    public var handler: ((HTTPRequest, String) -> HTTPResponse?)? {
+    public var handler: ((HTTPRequest, SXConnection) throws -> HTTPResponse?)? {
         willSet {
             self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
                 
@@ -61,12 +70,7 @@ public struct HTTPService : SXStreamSocketService {
                     return false
                 }
                 
-                var address: String? = ""
-                if let socket = queue.readAgent as? SXClientSocket {
-                    address = socket.address?.ipaddress
-                }
-                
-                if let response = newValue?(httprequest, address ?? "") {
+                if let response = try newValue?(httprequest, queue) {
                     try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
                 }
                 
@@ -75,22 +79,18 @@ public struct HTTPService : SXStreamSocketService {
         }
     }
     
-    public init(handler: @escaping (_ request: HTTPRequest, _ ip: String) -> HTTPResponse?) {
+    public init(handler: @escaping (_ request: HTTPRequest, _ queue: SXConnection) throws -> HTTPResponse?) {
         self.handler = handler
         self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
             
             try autoreleasepool {
+                
                 guard let httprequest = try? HTTPRequest(data: data) else {
                     return false
                 }
                 
-                var address: String? = ""
-                if let socket = queue.readAgent as? SXClientSocket {
-                    address = socket.address?.ipaddress
-                }
-                
-                let _response = autoreleasepool(invoking: { () -> HTTPResponse? in
-                    return handler(httprequest, address ?? "")
+                let _response = try autoreleasepool(invoking: { () -> HTTPResponse? in
+                    return try handler(httprequest, queue)
                 })
                 
                 if let response = _response {
@@ -129,3 +129,4 @@ public struct HTTPService : SXStreamSocketService {
         }
     }
 }
+
