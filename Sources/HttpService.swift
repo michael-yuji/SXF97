@@ -71,9 +71,9 @@ extension HTTPService : SXService {
         }
     }
     
-    public func exceptionRaised(_ exception: Error, on connection: SXQueue) {
+    public func exceptionRaised(_ exception: Error, on connection: SXQueue) -> ShouldProceed {
         guard let exception = exception as? HTTPException else {
-            return
+            return false
         }
         
         if case let .switchService(service, initialPayload) = exception {
@@ -86,6 +86,8 @@ extension HTTPService : SXService {
             send(response: res, to: connection)
             connection.service = service
         }
+        
+        return true
     }
     
     
