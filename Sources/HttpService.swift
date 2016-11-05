@@ -38,94 +38,64 @@ public enum HTTPException: Exception {
     case upgradeService(SXService, HTTPResponse)
 }
 
-public struct HTTPService : SXStreamSocketService {
+public struct HTTPService {
     
-    public var errHandler: ((SXQueue, Error) -> ())? =  {
-        guard let exception = $1 as? HTTPException else {
+    public var handler: (HTTPRequest, SXConnection) throws -> HTTPResponse?
+     public var supportingMethods: SendMethods = [.send, .sendfile]
+}
+
+extension HTTPService {
+    fileprivate func send(response: HTTPResponse, to connection: SXConnection) {
+        _ = try? response.send(with: self.supportingMethods.intersection(connection.supportedMethods), using: connection.writeAgent)
+    }
+}
+
+extension HTTPService : SXService {
+
+    public func received(data: Data, from connection: SXQueue) throws -> Bool {
+        return try autoreleasepool {
+
+            guard let httprequest = try? HTTPRequest(data: data) else {
+                return false
+            }
+
+            let _response = try autoreleasepool(invoking: { () -> HTTPResponse? in
+                return try handler(httprequest, connection)
+            })
+
+            if let response = _response {
+                send(response: response, to: connection)
+            }
+            
+            return true
+        }
+    }
+    
+    public func exceptionRaised(_ exception: Error, on connection: SXQueue) {
+        guard let exception = exception as? HTTPException else {
             return
         }
         
-        if case var .switchService(service, initialPayload) = exception {
-            $0.service = service
-            _ = try? service.dataHandler($0, initialPayload)
+        if case let .switchService(service, initialPayload) = exception {
+            connection.service = service
+            _ = try? service.received(data: initialPayload, from: connection)
+            
         }
         
-        if case var .upgradeService(service, res) = exception {
-            _ = try? res.send(with: HTTPService.supportedMethods.intersection($0.supportedMethods), using: $0.writeAgent)
-            $0.service = service
+        if case let .upgradeService(service, res) = exception {
+            send(response: res, to: connection)
+            connection.service = service
         }
     }
     
-    public var acceptedHandler: ((inout SXClientSocket) -> ())?
-    public var willTerminateHandler: ((SXQueue) -> ())?
-    public var didTerminateHandler: ((SXQueue) -> ())?
-    public var dataHandler: (SXQueue, Data) throws -> Bool
-    public static var supportedMethods: SendMethods = [.send, .sendfile]
-    
-    public var handler: ((HTTPRequest, SXConnection) throws -> HTTPResponse?)? {
-        willSet {
-            self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
-                
-                guard let httprequest = try? HTTPRequest(data: data) else {
-                    return false
-                }
-                
-                if let response = try newValue?(httprequest, queue) {
-                    try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
-                }
-                
-                return true
-            }
-        }
-    }
     
     public init(handler: @escaping (_ request: HTTPRequest, _ queue: SXConnection) throws -> HTTPResponse?) {
         self.handler = handler
-        self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
-            
-            try autoreleasepool {
-                
-                guard let httprequest = try? HTTPRequest(data: data) else {
-                    return false
-                }
-                
-                let _response = try autoreleasepool(invoking: { () -> HTTPResponse? in
-                    return try handler(httprequest, queue)
-                })
-                
-                if let response = _response {
-                    try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
-                }
-                
-                return true
-            }
-        }
     }
-    
+
     public init(router: SXRouter) {
-        
-        self.dataHandler = { (queue: SXQueue, data: Data) throws -> Bool in
-            
-            try autoreleasepool {
-                guard let httprequest = try? HTTPRequest(data: data) else {
-                    return false
-                }
-                
-                var address: String? = ""
-                if let socket = queue.readAgent as? SXClientSocket {
-                    address = socket.address?.ipaddress
-                }
-                
-                let _response = autoreleasepool(invoking: { () -> HTTPResponse? in
-                    return router.ApiLookup(rq: httprequest, ip: address ?? "")
-                })
-                
-                if let response = _response {
-                    try response.send(with: HTTPService.supportedMethods.intersection(queue.supportedMethods), using: queue.writeAgent)
-                }
-                
-                return true
-            }
+        self.handler = {
+            router.ApiLookup(rq: $0.0, connection: $0.1)
         }
     }
 }

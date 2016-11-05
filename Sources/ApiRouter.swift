@@ -8,17 +8,17 @@
 
 
 public struct SXRouter {
-    var dict = [String: (HTTPRequest, String) -> HTTPResponse?]()
+    var dict = [String: (HTTPRequest, SXConnection) -> HTTPResponse?]()
     
-    public mutating func register(path: String, for handler: @escaping (HTTPRequest, String) -> HTTPResponse?) {
+    public mutating func register(path: String, for handler: @escaping (HTTPRequest, SXConnection) -> HTTPResponse?) {
         dict[path] = handler
     }
     
-    public func ApiLookup(rq: HTTPRequest, ip: String) -> HTTPResponse? {
+    public func ApiLookup(rq: HTTPRequest, connection: SXConnection) -> HTTPResponse? {
         guard let api = dict[rq.uri.path] else {
             return nil
         }
         
-        return api(rq, ip)
+        return api(rq, connection)
     }
 }
