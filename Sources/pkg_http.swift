@@ -57,7 +57,7 @@ public protocol HTTP {
     var headerFields: [String: [String]] {get set}
 }
 
-extension HTTP: Transmittable {
+extension HTTP {
     public var sendOptions: SendMethods {
         return [.send, .sendfile, .write]
     }
