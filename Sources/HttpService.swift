@@ -31,6 +31,13 @@ import Foundation
 import spartanX
 
 public typealias Exception = Error
+//
+#if os(OSX) || os(iOS) || os(tvOS) || os(watchOS)
+#else
+    public func autoreleasepool<Result>(invoking body: () throws -> Result) rethrows -> Result {
+        return try body()
+    }
+#endif
 
 public enum HTTPException: Exception {
     case switchService(SXService, Data)
