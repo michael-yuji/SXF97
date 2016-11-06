@@ -64,47 +64,7 @@ extension HTTP {
     
     public func send(with method: SendMethods, using socket: Writable) throws {
         if let socket = socket as? SXClientSocket {
-//            try socket.write(data: raw)
-            var vectors = [iovec]()
-            if method.contains(.write) {
-                
-                let crlf = iovec(iov_base: UnsafeMutableRawPointer(mutating: Data.crlf.bytes), iov_len: 2)
-                let headerValueSeparator = ": ".withCString {
-                    iovec(iov_base: UnsafeMutableRawPointer(mutating: $0), iov_len: 2)
-                }
-                
-                statusline.withCString {
-                    vectors.append(iovec(iov_base: UnsafeMutablePointer<CChar>(mutating: $0), iov_len: statusline.characters.count))
-                    vectors.append(crlf)
-                }
-                
-                
-                for (header, values) in headerFields {
-                    
-                    let headerV = header.withCString {
-                        iovec(iov_base: UnsafeMutablePointer<CChar>(mutating: $0), iov_len: header.characters.count)
-                    }
-                    
-                    for value in values {
-                        vectors.append(headerV)
-                        vectors.append(headerValueSeparator)
-                        
-                        vectors.append(value.withCString {
-                            iovec(iov_base: UnsafeMutablePointer<CChar>(mutating: $0), iov_len: value.characters.count)
-                        })
-                        
-                        vectors.append(crlf)
-                    }
-                }
-                
-                vectors.append(crlf)
-                
-                if self.content != nil {
-                    vectors.append(iovec(iov_base: UnsafeMutableRawPointer(mutating: self.content!.bytes), iov_len: self.content!.length))
-                }
-            }
-            
-            writev(socket.fileDescriptor, &vectors, Int32(vectors.count))
+            try socket.write(data: raw)
         }
     }
 }
