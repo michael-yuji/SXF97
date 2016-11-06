@@ -31,7 +31,6 @@ import Foundation
 import spartanX
 
 public typealias Exception = Error
-public typealias SXConnection = SXQueue
 
 public enum HTTPException: Exception {
     case switchService(SXService, Data)
@@ -52,7 +51,7 @@ extension HTTPService {
 
 extension HTTPService : SXService {
 
-    public func received(data: Data, from connection: SXQueue) throws -> Bool {
+    public func received(data: Data, from connection: SXConnection) throws -> Bool {
         return try autoreleasepool {
 
             guard let httprequest = try? HTTPRequest(data: data) else {
@@ -71,7 +70,7 @@ extension HTTPService : SXService {
         }
     }
     
-    public func exceptionRaised(_ exception: Error, on connection: SXQueue) -> ShouldProceed {
+    public func exceptionRaised(_ exception: Exception, on connection: SXConnection) -> ShouldProceed {
         guard let exception = exception as? HTTPException else {
             return false
         }
@@ -97,7 +96,7 @@ extension HTTPService : SXService {
 
     public init(router: SXRouter) {
         self.handler = {
-            router.ApiLookup(rq: $0.0, connection: $0.1)
+            try router.ApiLookup(rq: $0.0, connection: $0.1)
         }
     }
 }
