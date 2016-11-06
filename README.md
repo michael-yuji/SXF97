@@ -28,6 +28,10 @@ SXKernelManager.default!.manage(server, setup: nil)
 dispatchMain()
 ```
 
+## HTTPS
+
+To Create a HTTPS service is almost identical to HTTP but you will need an additional TLS Layer, you will need to add [SXTLS](https://github.com/projectSX0/SXTLS) module to your project, see the [readme file of SXTLS](https://github.com/projectSX0/SXTLS) for more info.
+
 ## Switching/Upgrading to different protocol
 
 The following defines a service that upgrade/switch to another http service depends on the uri
@@ -75,6 +79,3 @@ dispatchMain()
 
 ```
 
-## HTTPS
-
-To Create a HTTPS service is almost identical to HTTP but you will need an additional TLS Layer, you will need to add [SXTLS](https://github.com/projectSX0/SXTLS) module to your project, see the [readme file of SXTLS](https://github.com/projectSX0/SXTLS) for more info.
