@@ -57,15 +57,13 @@ public protocol HTTP {
     var headerFields: [String: [String]] {get set}
 }
 
-extension HTTP {
+extension HTTP: Transmittable {
     public var sendOptions: SendMethods {
         return [.send, .sendfile, .write]
     }
     
-    public func send(with method: SendMethods, using socket: Writable) throws {
-        if let socket = socket as? SXClientSocket {
-            try socket.write(data: raw)
-        }
+    public func send(with method: SendMethods, using agent: Writable) throws {
+        try agent.write(data: raw)
     }
 }
 
